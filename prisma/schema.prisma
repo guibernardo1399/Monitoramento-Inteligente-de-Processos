@@ -34,6 +34,8 @@ model User {
   office       Office      @relation(fields: [officeId], references: [id], onDelete: Cascade)
   sessions     Session[]
   processes    Process[]   @relation("InternalResponsible")
+
+  @@index([officeId])
 }
 
 model Session {
@@ -43,6 +45,9 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Client {
@@ -55,6 +60,8 @@ model Client {
   updatedAt   DateTime  @updatedAt
   office      Office    @relation(fields: [officeId], references: [id], onDelete: Cascade)
   processes   Process[]
+
+  @@index([officeId])
 }
 
 model Process {
@@ -84,6 +91,12 @@ model Process {
   publications        ProcessPublication[]
   alerts              Alert[]
   syncLogs            SyncLog[]
+
+  @@index([officeId, lastEventAt])
+  @@index([officeId, monitoringStatus])
+  @@index([clientId])
+  @@index([internalResponsibleId])
+  @@index([lawyerOab])
 }
 
 model ProcessParty {
@@ -94,6 +107,8 @@ model ProcessParty {
   document    String?
   createdAt   DateTime @default(now())
   process     Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@index([processId])
 }
 
 model ProcessMovement {
@@ -109,6 +124,7 @@ model ProcessMovement {
   process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
 
   @@unique([processId, title, movementDate])
+  @@index([processId, movementDate])
 }
 
 model ProcessPublication {
@@ -125,6 +141,7 @@ model ProcessPublication {
   process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
 
   @@unique([processId, source, publicationDate, title])
+  @@index([processId, publicationDate])
 }
 
 model Alert {
@@ -141,6 +158,11 @@ model Alert {
   office               Office         @relation(fields: [officeId], references: [id], onDelete: Cascade)
   process              Process        @relation(fields: [processId], references: [id], onDelete: Cascade)
   deliveries           AlertDelivery[]
+
+  @@index([officeId, createdAt])
+  @@index([officeId, severity, status])
+  @@index([officeId, requiresHumanReview, status])
+  @@index([processId])
 }
 
 model AlertDelivery {
@@ -152,6 +174,8 @@ model AlertDelivery {
   status      String
   createdAt   DateTime @default(now())
   alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
 }
 
 model SyncLog {
@@ -168,4 +192,7 @@ model SyncLog {
   createdAt          DateTime    @default(now())
   office             Office      @relation(fields: [officeId], references: [id], onDelete: Cascade)
   process            Process?    @relation(fields: [processId], references: [id], onDelete: SetNull)
+
+  @@index([officeId, startedAt])
+  @@index([processId, startedAt])
 }

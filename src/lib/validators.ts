@@ -33,3 +33,9 @@ export const processCreateSchema = z.object({
 export const alertActionSchema = z.object({
   status: z.enum(["READ", "REVIEWED", "NO_IMPACT"]),
 });
+
+export const officeMemberSchema = z.object({
+  name: z.string().min(2, "Informe o nome do membro."),
+  email: z.string().email("Informe um e-mail valido."),
+  password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
+});

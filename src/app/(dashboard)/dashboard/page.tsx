@@ -8,7 +8,8 @@ import { requireUser } from "@/server/auth/session";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = await getDashboardData(user.officeId);
+  const isOwner = user.role === "OWNER";
+  const data = await getDashboardData(user.officeId, user.id, isOwner);
 
   return (
     <div className="space-y-4">

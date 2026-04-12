@@ -5,12 +5,19 @@ export async function getProcesses(
   officeId: string,
   search?: string,
   filter?: "all" | "recent" | "critical",
+  userId?: string,
+  isOwner = false,
 ) {
   const recentDate = subDays(new Date(), 3);
 
   return prisma.process.findMany({
     where: {
       officeId,
+      ...(isOwner
+        ? {}
+        : {
+            internalResponsibleId: userId,
+          }),
       ...(filter === "recent"
         ? {
             lastEventAt: { gte: recentDate },
@@ -39,11 +46,36 @@ export async function getProcesses(
           }
         : {}),
     },
-    include: {
-      client: true,
-      internalResponsible: true,
+    select: {
+      id: true,
+      cnjNumber: true,
+      lawyerOab: true,
+      className: true,
+      subject: true,
+      monitoringStatus: true,
+      lastEventAt: true,
+      updatedAt: true,
+      client: {
+        select: {
+          name: true,
+        },
+      },
+      internalResponsible: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       alerts: {
         where: { status: { in: ["UNREAD", "READ"] } },
+        orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          severity: true,
+          status: true,
+          createdAt: true,
+        },
       },
     },
     orderBy: [{ lastEventAt: "desc" }, { updatedAt: "desc" }],
@@ -56,21 +88,85 @@ export async function getProcessDetails(processId: string, officeId: string) {
       id: processId,
       officeId,
     },
-    include: {
-      client: true,
-      internalResponsible: true,
-      parties: true,
+    select: {
+      id: true,
+      cnjNumber: true,
+      lawyerName: true,
+      lawyerOab: true,
+      court: true,
+      className: true,
+      subject: true,
+      judgingBody: true,
+      notes: true,
+      createdAt: true,
+      lastSyncedAt: true,
+      client: {
+        select: {
+          id: true,
+          name: true,
+          document: true,
+        },
+      },
+      internalResponsible: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      parties: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          document: true,
+        },
+      },
       movements: {
         orderBy: { movementDate: "desc" },
+        take: 40,
+        select: {
+          id: true,
+          movementDate: true,
+          title: true,
+          description: true,
+        },
       },
       publications: {
         orderBy: { publicationDate: "desc" },
+        take: 30,
+        select: {
+          id: true,
+          publicationDate: true,
+          title: true,
+          content: true,
+          hasDeadlineHint: true,
+          source: true,
+        },
       },
       alerts: {
         orderBy: { createdAt: "desc" },
+        take: 30,
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          severity: true,
+          status: true,
+          createdAt: true,
+        },
       },
       syncLogs: {
         orderBy: { startedAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          source: true,
+          status: true,
+          startedAt: true,
+          finishedAt: true,
+          errorMessage: true,
+          externalReference: true,
+        },
       },
     },
   });
@@ -79,10 +175,19 @@ export async function getProcessDetails(processId: string, officeId: string) {
 export async function getAlerts(
   officeId: string,
   filter?: "all" | "critical" | "pending-review",
+  userId?: string,
+  isOwner = false,
 ) {
   return prisma.alert.findMany({
     where: {
       officeId,
+      ...(isOwner
+        ? {}
+        : {
+            process: {
+              internalResponsibleId: userId,
+            },
+          }),
       ...(filter === "critical"
         ? {
             severity: "CRITICAL",
@@ -96,13 +201,27 @@ export async function getAlerts(
           }
         : {}),
     },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      message: true,
+      severity: true,
+      status: true,
+      createdAt: true,
       process: {
-        include: {
-          client: true,
+        select: {
+          id: true,
+          cnjNumber: true,
+          lawyerOab: true,
+          client: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
     },
+    take: 50,
     orderBy: [{ createdAt: "desc" }],
   });
 }

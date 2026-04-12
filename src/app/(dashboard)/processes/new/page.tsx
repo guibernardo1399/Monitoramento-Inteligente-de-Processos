@@ -7,12 +7,23 @@ export default async function NewProcessPage() {
   const user = await requireUser();
   const [clients, users] = await Promise.all([
     prisma.client.findMany({
-      where: { officeId: user.officeId },
+      where: {
+        officeId: user.officeId,
+        ...(user.role === "OWNER"
+          ? {}
+          : {
+              processes: {
+                some: {
+                  internalResponsibleId: user.id,
+                },
+              },
+            }),
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     prisma.user.findMany({
-      where: { officeId: user.officeId },
+      where: user.role === "OWNER" ? { officeId: user.officeId } : { id: user.id },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -25,7 +36,7 @@ export default async function NewProcessPage() {
         Informe o numero CNJ para puxar metadados pelo conector configurado. No modo demo, o sistema usa adaptadores mockados para manter o fluxo funcional sem depender de credenciais externas.
       </p>
       <div className="mt-6">
-        <ProcessForm clients={clients} responsibles={users} />
+        <ProcessForm clients={clients} responsibles={users} currentUserId={user.id} isOwner={user.role === "OWNER"} />
       </div>
     </Card>
   );

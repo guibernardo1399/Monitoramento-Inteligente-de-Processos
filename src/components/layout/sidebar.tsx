@@ -3,15 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BriefcaseBusiness, LayoutDashboard, LogOut, Scale, Siren, Users } from "lucide-react";
+import { Bell, BriefcaseBusiness, LayoutDashboard, LogOut, Scale, Siren, UserCog, Users } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/clients", label: "Clientes", icon: Users },
   { href: "/processes", label: "Processos", icon: Scale },
   { href: "/alerts", label: "Alertas", icon: Siren },
-  { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/team", label: "Equipe", icon: UserCog },
 ] as const;
 
 export function Sidebar() {

@@ -15,7 +15,8 @@ export default async function AlertsPage({
   const user = await requireUser();
   const { filter } = await searchParams;
   const activeFilter = filter || "all";
-  const alerts = await getAlerts(user.officeId, activeFilter);
+  const isOwner = user.role === "OWNER";
+  const alerts = await getAlerts(user.officeId, activeFilter, user.id, isOwner);
 
   const title =
     activeFilter === "critical"
@@ -28,7 +29,9 @@ export default async function AlertsPage({
       ? "Veja rapidamente os eventos mais sensiveis que pedem prioridade operacional."
       : activeFilter === "pending-review"
         ? "Fila de itens que ainda dependem de analise humana do escritorio."
-        : "Historico consolidado de alertas gerados pelo monitoramento.";
+        : isOwner
+          ? "Historico consolidado de alertas gerados pelo monitoramento."
+          : "Historico consolidado dos alertas ligados aos seus processos.";
 
   return (
     <div className="space-y-4">

@@ -9,13 +9,23 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser();
     const body = processCreateSchema.parse(await request.json());
+    const internalResponsibleId =
+      user.role === "OWNER" ? body.internalResponsibleId || null : user.id;
+
+    if (user.role !== "OWNER" && body.internalResponsibleId && body.internalResponsibleId !== user.id) {
+      return NextResponse.json(
+        { error: "Membros so podem criar processos sob a propria responsabilidade." },
+        { status: 403 },
+      );
+    }
+
     const snapshot = await datajudConnector.fetchProcessByCNJ(body.cnjNumber);
 
     const process = await prisma.process.create({
       data: {
         officeId: user.officeId,
         clientId: body.clientId,
-        internalResponsibleId: body.internalResponsibleId || null,
+        internalResponsibleId,
         cnjNumber: body.cnjNumber,
         lawyerName: body.lawyerName || null,
         lawyerOab: body.lawyerOab || null,

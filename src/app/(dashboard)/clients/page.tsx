@@ -6,9 +6,27 @@ import { requireUser } from "@/server/auth/session";
 export default async function ClientsPage() {
   const user = await requireUser();
   const clients = await prisma.client.findMany({
-    where: { officeId: user.officeId },
-    include: {
-      processes: true,
+    where: {
+      officeId: user.officeId,
+      ...(user.role === "OWNER"
+        ? {}
+        : {
+            processes: {
+              some: {
+                internalResponsibleId: user.id,
+              },
+            },
+          }),
+    },
+    select: {
+      id: true,
+      name: true,
+      document: true,
+      notes: true,
+      processes: {
+        where: user.role === "OWNER" ? undefined : { internalResponsibleId: user.id },
+        select: { id: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -18,11 +36,19 @@ export default async function ClientsPage() {
       <Card>
         <h2 className="text-xl font-semibold text-ink">Cadastro de clientes</h2>
         <p className="mt-2 text-sm text-steel">
-          Base centralizada para vincular processos, anotar contexto e preparar operacao multiusuario.
+          {user.role === "OWNER"
+            ? "Base centralizada para vincular processos, anotar contexto e preparar operacao multiusuario."
+            : "Visualize os clientes ligados aos processos sob sua responsabilidade."}
         </p>
-        <div className="mt-5">
-          <ClientForm />
-        </div>
+        {user.role === "OWNER" ? (
+          <div className="mt-5">
+            <ClientForm />
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl bg-mist/70 p-4 text-sm text-steel">
+            Somente o proprietario pode cadastrar novos clientes.
+          </div>
+        )}
       </Card>
       <Card>
         <h2 className="text-xl font-semibold text-ink">Clientes do escritorio</h2>

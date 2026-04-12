@@ -11,9 +11,13 @@ import { cnjRemainingDigits, formatCNJ } from "@/lib/utils";
 export function ProcessForm({
   clients,
   responsibles,
+  currentUserId,
+  isOwner,
 }: {
   clients: Array<{ id: string; name: string }>;
   responsibles: Array<{ id: string; name: string }>;
+  currentUserId: string;
+  isOwner: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +84,23 @@ export function ProcessForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Responsavel interno</label>
-          <Select name="internalResponsibleId" defaultValue="" disabled={loading}>
-            <option value="">Nao definido</option>
+          <Select
+            name="internalResponsibleId"
+            defaultValue={isOwner ? "" : currentUserId}
+            disabled={loading || !isOwner}
+          >
+            {isOwner ? <option value="">Nao definido</option> : null}
             {responsibles.map((responsible) => (
               <option key={responsible.id} value={responsible.id}>
                 {responsible.name}
               </option>
             ))}
           </Select>
+          {!isOwner ? (
+            <p className="text-xs text-steel">
+              Como membro, voce so pode criar processos sob a sua propria responsabilidade.
+            </p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Advogado monitorado</label>

@@ -1,5 +1,11 @@
 export const APP_NAME = "Monitoramento Inteligente de Processos";
 
+export const monitoringStatusConfig = {
+  ACTIVE: "Ativo",
+  PAUSED: "Pausado",
+  ERROR: "Com erro",
+} as const;
+
 export const severityConfig = {
   INFO: {
     label: "Informativo",

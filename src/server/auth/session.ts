@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { compare, hash } from "bcryptjs";
@@ -53,7 +54,7 @@ export async function clearSession() {
   });
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const cookieStore = await cookies();
   const token = cookieStore.get(env.authCookieName)?.value;
 
@@ -61,10 +62,23 @@ export async function getCurrentUser() {
 
   const session = await prisma.session.findUnique({
     where: { token },
-    include: {
+    select: {
+      expiresAt: true,
       user: {
-        include: {
-          office: true,
+        select: {
+          id: true,
+          officeId: true,
+          name: true,
+          email: true,
+          role: true,
+          office: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              plan: true,
+            },
+          },
         },
       },
     },
@@ -75,7 +89,7 @@ export async function getCurrentUser() {
   }
 
   return session.user;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

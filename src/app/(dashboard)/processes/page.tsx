@@ -3,6 +3,7 @@ import { Plus, TriangleAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SeverityBadge } from "@/components/ui/badge";
+import { monitoringStatusConfig } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 import { getProcesses } from "@/modules/processes/queries";
 import { requireUser } from "@/server/auth/session";
@@ -15,7 +16,8 @@ export default async function ProcessesPage({
   const user = await requireUser();
   const { q, filter } = await searchParams;
   const activeFilter = filter || "all";
-  const processes = await getProcesses(user.officeId, q, activeFilter);
+  const isOwner = user.role === "OWNER";
+  const processes = await getProcesses(user.officeId, q, activeFilter, user.id, isOwner);
 
   const title =
     activeFilter === "recent"
@@ -28,7 +30,9 @@ export default async function ProcessesPage({
       ? "Lista focada nos processos com eventos ou movimentacoes recentes para revisao rapida."
       : activeFilter === "critical"
         ? "Fila dos processos que concentram alertas criticos pendentes."
-        : "Busca por CNJ, cliente, classe ou assunto com visao rapida de alertas e ultima atividade.";
+        : isOwner
+          ? "Busca por CNJ, cliente, classe ou assunto com visao rapida de alertas e ultima atividade."
+          : "Busca na sua carteira de processos por CNJ, cliente, classe ou assunto.";
 
   return (
     <div className="space-y-4">
@@ -51,12 +55,14 @@ export default async function ProcessesPage({
                 Buscar
               </Button>
             </form>
-            <Link href="/processes/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo processo
-              </Button>
-            </Link>
+            {isOwner ? (
+              <Link href="/processes/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo processo
+                </Button>
+              </Link>
+            ) : null}
           </div>
         </div>
       </Card>
@@ -112,7 +118,7 @@ export default async function ProcessesPage({
                     </td>
                     <td className="px-5 py-4">
                       <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-brand">
-                        {process.monitoringStatus}
+                        {monitoringStatusConfig[process.monitoringStatus as keyof typeof monitoringStatusConfig] || process.monitoringStatus}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-steel">

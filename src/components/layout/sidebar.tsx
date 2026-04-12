@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, BriefcaseBusiness, LayoutDashboard, LogOut, Scale, Siren, Users } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,20 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+    } finally {
+      window.location.href = "/login";
+    }
+  }
 
   return (
     <aside className="flex h-full flex-col rounded-[28px] bg-brand px-5 py-6 text-white shadow-panel">
@@ -65,15 +78,17 @@ export function Sidebar() {
             Alertas sao apoio operacional. A validacao juridica final continua com o escritorio.
           </p>
         </div>
-        <form action="/api/auth/logout" method="post" onSubmit={() => setIsLoggingOut(true)}>
+        <div>
           <button
+            type="button"
+            onClick={handleLogout}
             disabled={isLoggingOut}
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="h-4 w-4" />
             {isLoggingOut ? "Saindo..." : "Sair"}
           </button>
-        </form>
+        </div>
       </div>
     </aside>
   );

@@ -1,7 +1,7 @@
 "use client";
 
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,9 +11,12 @@ export function ClientForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
+
+    const formData = new FormData(event.currentTarget);
 
     const response = await fetch("/api/clients", {
       method: "POST",
@@ -28,26 +31,30 @@ export function ClientForm() {
       return;
     }
 
+    event.currentTarget.reset();
     router.refresh();
+    setLoading(false);
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4 rounded-2xl border border-line bg-mist/70 p-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-ink">Nome</label>
-        <Input name="name" placeholder="Ex.: Inova Tech Ltda." required />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-ink">Documento</label>
-        <Input name="document" placeholder="Opcional" />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-ink">Observacoes</label>
-        <Textarea name="notes" placeholder="Informacoes relevantes do relacionamento." />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-line bg-mist/70 p-4">
+      <fieldset disabled={loading} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">Nome</label>
+          <Input name="name" placeholder="Ex.: Inova Tech Ltda." required />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">Documento</label>
+          <Input name="document" placeholder="Opcional" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">Observacoes</label>
+          <Textarea name="notes" placeholder="Informacoes relevantes do relacionamento." />
+        </div>
+      </fieldset>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <Button type="submit" fullWidth disabled={loading}>
-        {loading ? "Salvando..." : "Adicionar cliente"}
+        {loading ? "Cadastrando cliente..." : "Adicionar cliente"}
       </Button>
     </form>
   );

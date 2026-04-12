@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,12 @@ export function ProcessForm({
   const [loading, setLoading] = useState(false);
   const [cnjValue, setCnjValue] = useState("");
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
+
+    const formData = new FormData(event.currentTarget);
 
     const response = await fetch("/api/processes", {
       method: "POST",
@@ -43,12 +46,11 @@ export function ProcessForm({
 
     const body = await response.json();
     router.push(`/processes/${body.id}`);
-    router.refresh();
   }
 
   return (
-    <form action={handleSubmit} className="space-y-5">
-      <div className="grid gap-5 md:grid-cols-2">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <fieldset disabled={loading} className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2 md:col-span-2">
           <label className="text-sm font-medium text-ink">Numero CNJ</label>
           <Input
@@ -61,7 +63,7 @@ export function ProcessForm({
             inputMode="numeric"
           />
           <p className="text-xs text-steel">
-            O sistema tenta consultar dados oficiais; sem conector ativo, usa mock realista para modo demo.
+            O processo sera cadastrado somente depois que o sistema localizar dados validos para esse CNJ.
           </p>
           <p className="text-xs text-steel">
             {cnjRemainingDigits(cnjValue) === 0
@@ -121,11 +123,11 @@ export function ProcessForm({
             disabled={loading}
           />
         </div>
-      </div>
+      </fieldset>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>
-          {loading ? "Salvando..." : "Cadastrar processo"}
+          {loading ? "Cadastrando processo..." : "Cadastrar processo"}
         </Button>
       </div>
     </form>

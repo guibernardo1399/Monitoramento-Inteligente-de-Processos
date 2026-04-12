@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AlertActions } from "@/components/process/alert-actions";
+import { DeleteProcessButton } from "@/components/process/delete-process-button";
 import { ReportButton } from "@/components/process/report-button";
 import { SyncButton } from "@/components/process/sync-button";
 import { ProcessTimeline } from "@/components/process/timeline";
@@ -67,6 +68,7 @@ export default async function ProcessDetailsPage({
           <div className="flex flex-wrap gap-3">
             <ReportButton processId={process.id} />
             <SyncButton processId={process.id} />
+            <DeleteProcessButton processId={process.id} />
           </div>
         </div>
       </Card>

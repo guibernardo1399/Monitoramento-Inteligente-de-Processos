@@ -16,8 +16,9 @@ SaaS MVP para advogados e pequenos escritorios com foco em:
 - TypeScript
 - Tailwind CSS
 - Prisma
-- SQLite no desenvolvimento
-- Arquitetura preparada para Postgres/Supabase
+- PostgreSQL
+- Supabase no banco
+- Arquitetura preparada para deploy na Vercel
 
 ## Como rodar
 
@@ -27,22 +28,24 @@ SaaS MVP para advogados e pequenos escritorios com foco em:
 npm install
 ```
 
-2. Gere o client do Prisma e popule o banco:
+2. Configure um banco Postgres. Para producao, use Supabase e copie as duas connection strings:
+
+- `DATABASE_URL`: use a string do pooler na porta `6543`
+- `DIRECT_URL`: use a string direta na porta `5432`
+
+3. Gere o schema e popule o banco:
 
 ```bash
 npm run seed
 ```
 
-Se voce ja tinha rodado uma versao anterior do projeto, execute `npm run seed` novamente para atualizar o banco demo com os novos campos.
-Esse comando recria o banco local de demonstracao.
-
-3. Rode em desenvolvimento:
+4. Rode em desenvolvimento:
 
 ```bash
 npm run dev
 ```
 
-4. Acesse em `http://localhost:3000`
+5. Acesse em `http://localhost:3000`
 
 ## Conta demo
 
@@ -69,14 +72,53 @@ npm run dev
 
 O projeto funciona sem credenciais externas. Com `USE_MOCK_CONNECTORS=true`, os adaptadores usam dados mockados.
 
-Para ligar integracoes reais depois:
+## Supabase e Vercel
 
-1. Preencha `DATAJUD_BASE_URL` e `DATAJUD_API_KEY`
-2. Preencha `DJEN_BASE_URL` e `DJEN_API_KEY`
-3. Implemente chamadas HTTP em:
+No Supabase:
+
+1. Crie um projeto
+2. Em `Project Settings > Database`, copie:
+   - connection string pooled para `DATABASE_URL`
+   - connection string direct para `DIRECT_URL`
+3. Em `SQL Editor`, deixe o Prisma cuidar do schema com `npm run db:push` ou `npm run db:migrate`
+
+Na Vercel:
+
+1. Importe o repositório
+2. Configure as env vars:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
+   - `AUTH_COOKIE_NAME`
+   - `APP_URL`
+   - `USE_MOCK_CONNECTORS`
+   - `DATAJUD_BASE_URL`
+   - `DATAJUD_API_KEY`
+   - `DATAJUD_TRIBUNAL_ALIAS` se quiser forcar um alias
+   - `DJEN_BASE_URL`
+   - `DJEN_API_PATH`
+   - `DJEN_API_KEY` se a integracao exigir token
+3. Em `Build Command`, mantenha o build padrao
+4. Rode `npm run db:migrate` antes do primeiro uso produtivo
+
+## Integracao real: Datajud e DJEN
+
+Para ligar integracoes reais:
+
+1. Datajud:
+   - preencha `DATAJUD_BASE_URL` e `DATAJUD_API_KEY`
+   - se necessario, force `DATAJUD_TRIBUNAL_ALIAS`
+   - o conector usa `POST /{alias}/_search` e normaliza a resposta
+2. DJEN:
+   - preencha `DJEN_BASE_URL`
+   - defina `DJEN_API_PATH` com o caminho efetivo do endpoint que seu acesso usar
+   - se houver autenticacao, preencha `DJEN_API_KEY`
+3. Os adaptadores reais ficam em:
    - `src/connectors/adapters/datajud.ts`
    - `src/connectors/adapters/djen.ts`
-4. Mantenha a interface de retorno definida em:
+4. Os helpers de transporte e resolucao ficam em:
+   - `src/connectors/utils/http.ts`
+   - `src/connectors/utils/tribunal-alias.ts`
+5. Mantenha a interface de retorno definida em:
    - `src/connectors/types.ts`
 
 ## Observacao importante do produto

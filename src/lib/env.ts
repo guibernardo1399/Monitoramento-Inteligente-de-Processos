@@ -1,10 +1,15 @@
 export const env = {
-  databaseUrl: process.env.DATABASE_URL || "file:./dev.db",
+  databaseUrl: process.env.DATABASE_URL || "",
+  directUrl: process.env.DIRECT_URL || "",
   authCookieName: process.env.AUTH_COOKIE_NAME || "mip_session",
   appUrl: process.env.APP_URL || "http://localhost:3000",
   datajudBaseUrl: process.env.DATAJUD_BASE_URL || "",
   datajudApiKey: process.env.DATAJUD_API_KEY || "",
+  datajudTribunalAlias: process.env.DATAJUD_TRIBUNAL_ALIAS || "",
+  datajudTimeoutMs: Number(process.env.DATAJUD_TIMEOUT_MS || "15000"),
   djenBaseUrl: process.env.DJEN_BASE_URL || "",
   djenApiKey: process.env.DJEN_API_KEY || "",
+  djenApiPath: process.env.DJEN_API_PATH || "",
+  djenTimeoutMs: Number(process.env.DJEN_TIMEOUT_MS || "15000"),
   useMockConnectors: process.env.USE_MOCK_CONNECTORS !== "false",
 };

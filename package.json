@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
-    "db:init": "sqlite3 /tmp/monitoramento-inteligente-processos.db \".read prisma/init.sql\"",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "seed": "rm -f /tmp/monitoramento-inteligente-processos.db && npm run db:generate && npm run db:init && npm run db:seed"
+    "seed": "npm run db:generate && npm run db:push && npm run db:seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Office {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  plan        String      @default("starter")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  users       User[]
+  clients     Client[]
+  processes   Process[]
+  alerts      Alert[]
+  syncLogs    SyncLog[]
+}
+
+model User {
+  id           String      @id @default(cuid())
+  officeId     String
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         String      @default("MEMBER")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  office       Office      @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  processes    Process[]   @relation("InternalResponsible")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id          String    @id @default(cuid())
+  officeId     String
+  name        String
+  document    String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  office      Office    @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  processes   Process[]
+}
+
+model Process {
+  id                  String              @id @default(cuid())
+  officeId             String
+  clientId            String
+  internalResponsibleId String?
+  cnjNumber           String              @unique
+  lawyerName          String?
+  lawyerOab           String?
+  court               String
+  className           String
+  subject             String
+  judgingBody         String
+  notes               String?
+  monitoringStatus    String              @default("ACTIVE")
+  lastSyncedAt        DateTime?
+  lastEventAt         DateTime?
+  externalReference   String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  office              Office              @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  client              Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  internalResponsible User?               @relation("InternalResponsible", fields: [internalResponsibleId], references: [id], onDelete: SetNull)
+  parties             ProcessParty[]
+  movements           ProcessMovement[]
+  publications        ProcessPublication[]
+  alerts              Alert[]
+  syncLogs            SyncLog[]
+}
+
+model ProcessParty {
+  id          String   @id @default(cuid())
+  processId   String
+  name        String
+  role        String
+  document    String?
+  createdAt   DateTime @default(now())
+  process     Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+}
+
+model ProcessMovement {
+  id              String   @id @default(cuid())
+  processId       String
+  externalId      String?
+  movementDate    DateTime
+  title           String
+  description     String
+  code            String?
+  rawPayload      String?
+  createdAt       DateTime @default(now())
+  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, title, movementDate])
+}
+
+model ProcessPublication {
+  id              String   @id @default(cuid())
+  processId       String
+  externalId      String?
+  publicationDate DateTime
+  source          String
+  title           String
+  content         String
+  hasDeadlineHint Boolean  @default(false)
+  rawPayload      String?
+  createdAt       DateTime @default(now())
+  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, source, publicationDate, title])
+}
+
+model Alert {
+  id                   String         @id @default(cuid())
+  officeId              String
+  processId            String
+  title                String
+  message              String
+  severity             String
+  status               String         @default("UNREAD")
+  requiresHumanReview  Boolean        @default(true)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  office               Office         @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  process              Process        @relation(fields: [processId], references: [id], onDelete: Cascade)
+  deliveries           AlertDelivery[]
+}
+
+model AlertDelivery {
+  id          String   @id @default(cuid())
+  alertId     String
+  channel     String
+  target      String
+  sentAt      DateTime?
+  status      String
+  createdAt   DateTime @default(now())
+  alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+}
+
+model SyncLog {
+  id                 String      @id @default(cuid())
+  officeId            String
+  processId          String?
+  source             String
+  startedAt          DateTime
+  finishedAt         DateTime?
+  status             String
+  errorMessage       String?
+  rawPayload         String?
+  externalReference  String?
+  createdAt          DateTime    @default(now())
+  office             Office      @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  process            Process?    @relation(fields: [processId], references: [id], onDelete: SetNull)
+}

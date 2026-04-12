@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, BriefcaseBusiness, LayoutDashboard, LogOut, Scale, Siren, Users } from "lucide-react";
@@ -15,6 +16,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   return (
     <aside className="flex h-full flex-col rounded-[28px] bg-brand px-5 py-6 text-white shadow-panel">
@@ -63,10 +65,13 @@ export function Sidebar() {
             Alertas sao apoio operacional. A validacao juridica final continua com o escritorio.
           </p>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-white">
+        <form action="/api/auth/logout" method="post" onSubmit={() => setIsLoggingOut(true)}>
+          <button
+            disabled={isLoggingOut}
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <LogOut className="h-4 w-4" />
-            Sair
+            {isLoggingOut ? "Saindo..." : "Sair"}
           </button>
         </form>
       </div>

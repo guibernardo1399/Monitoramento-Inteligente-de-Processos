@@ -50,33 +50,32 @@ export function AuthForm({ mode }: AuthFormProps) {
       {mode === "register" ? (
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Nome do escritorio</label>
-          <Input name="officeName" placeholder="Ex.: Rocha & Associados" required />
+          <Input name="officeName" placeholder="Ex.: Rocha & Associados" required disabled={loading} />
+        </div>
+      ) : null}
+      {mode === "register" ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">Seu nome</label>
+          <Input name="name" placeholder="Ex.: Mariana Rocha" required disabled={loading} />
         </div>
       ) : null}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-ink">Seu nome</label>
-        <Input
-          name="name"
-          placeholder="Ex.: Mariana Rocha"
-          required={mode === "register"}
-          disabled={mode === "login"}
-        />
-      </div>
-      <div className="space-y-2">
         <label className="text-sm font-medium text-ink">E-mail</label>
-        <Input name="email" type="email" placeholder="voce@escritorio.com" required />
+        <Input name="email" type="email" placeholder="voce@escritorio.com" required disabled={loading} />
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium text-ink">Senha</label>
-        <Input name="password" type="password" placeholder="Minimo de 6 caracteres" required />
+        <Input
+          name="password"
+          type="password"
+          placeholder="Minimo de 6 caracteres"
+          required
+          disabled={loading}
+        />
       </div>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <Button type="submit" fullWidth disabled={loading}>
-        {loading
-          ? "Processando..."
-          : mode === "login"
-            ? "Entrar no painel"
-            : "Criar conta e escritorio"}
+        {loading ? (mode === "login" ? "Entrando..." : "Criando escritorio...") : mode === "login" ? "Entrar no painel" : "Criar conta e escritorio"}
       </Button>
     </form>
   );

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cnjRemainingDigits, formatCNJ } from "@/lib/utils";
 
 export function ProcessForm({
   clients,
@@ -17,6 +18,7 @@ export function ProcessForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cnjValue, setCnjValue] = useState("");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -45,14 +47,27 @@ export function ProcessForm({
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2 md:col-span-2">
           <label className="text-sm font-medium text-ink">Numero CNJ</label>
-          <Input name="cnjNumber" placeholder="5001682-64.2024.8.26.0100" required />
+          <Input
+            name="cnjNumber"
+            placeholder="5001682-64.2024.8.26.0100"
+            required
+            disabled={loading}
+            value={cnjValue}
+            onChange={(event) => setCnjValue(formatCNJ(event.target.value))}
+            inputMode="numeric"
+          />
           <p className="text-xs text-steel">
             O sistema tenta consultar dados oficiais; sem conector ativo, usa mock realista para modo demo.
+          </p>
+          <p className="text-xs text-steel">
+            {cnjRemainingDigits(cnjValue) === 0
+              ? "Numero CNJ completo."
+              : `Faltam ${cnjRemainingDigits(cnjValue)} digito(s) para completar o CNJ.`}
           </p>
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Cliente</label>
-          <Select name="clientId" required defaultValue="">
+          <Select name="clientId" required defaultValue="" disabled={loading}>
             <option value="" disabled>
               Selecione
             </option>
@@ -65,7 +80,7 @@ export function ProcessForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Responsavel interno</label>
-          <Select name="internalResponsibleId" defaultValue="">
+          <Select name="internalResponsibleId" defaultValue="" disabled={loading}>
             <option value="">Nao definido</option>
             {responsibles.map((responsible) => (
               <option key={responsible.id} value={responsible.id}>
@@ -76,11 +91,11 @@ export function ProcessForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Advogado monitorado</label>
-          <Input name="lawyerName" placeholder="Ex.: Mariana Rocha" />
+          <Input name="lawyerName" placeholder="Ex.: Mariana Rocha" disabled={loading} />
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink">Numero da OAB</label>
-          <Input name="lawyerOab" placeholder="Ex.: OAB/SP 123456" />
+          <Input name="lawyerOab" placeholder="Ex.: OAB/SP 123456" disabled={loading} />
           <p className="text-xs text-steel">
             Use a OAB para organizar busca, carteira de processos e futuras integracoes por advogado.
           </p>
@@ -90,6 +105,7 @@ export function ProcessForm({
           <Textarea
             name="notes"
             placeholder="Ex.: cliente sensivel a atualizacoes, priorizar revisao no mesmo dia."
+            disabled={loading}
           />
         </div>
       </div>

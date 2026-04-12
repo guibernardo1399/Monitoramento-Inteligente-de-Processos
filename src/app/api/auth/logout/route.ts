@@ -4,5 +4,5 @@ import { clearSession } from "@/server/auth/session";
 
 export async function POST() {
   await clearSession();
-  return NextResponse.redirect(new URL("/login", env.appUrl));
+  return NextResponse.redirect(new URL("/login", env.appUrl), { status: 303 });
 }

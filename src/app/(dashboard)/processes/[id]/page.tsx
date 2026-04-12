@@ -16,7 +16,7 @@ export default async function ProcessDetailsPage({
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const process = await getProcessDetails(id, user.officeId);
+  const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
 
   if (!process) notFound();
 

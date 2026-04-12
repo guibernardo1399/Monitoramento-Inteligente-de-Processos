@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const user = await requireUser();
   const { id } = await params;
-  const process = await getProcessDetails(id, user.officeId);
+  const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
 
   if (!process) {
     return NextResponse.json({ error: "Processo nao encontrado." }, { status: 404 });

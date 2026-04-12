@@ -16,6 +16,13 @@ export async function PATCH(
       where: {
         id,
         officeId: user.officeId,
+        ...(user.role === "OWNER"
+          ? {}
+          : {
+              process: {
+                internalResponsibleId: user.id,
+              },
+            }),
       },
       data: {
         status: body.status,

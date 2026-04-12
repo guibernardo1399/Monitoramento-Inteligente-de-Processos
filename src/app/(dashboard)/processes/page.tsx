@@ -55,14 +55,12 @@ export default async function ProcessesPage({
                 Buscar
               </Button>
             </form>
-            {isOwner ? (
-              <Link href="/processes/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo processo
-                </Button>
-              </Link>
-            ) : null}
+            <Link href="/processes/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo processo
+              </Button>
+            </Link>
           </div>
         </div>
       </Card>

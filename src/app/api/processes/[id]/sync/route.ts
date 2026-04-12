@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth/session";
 import { syncProcess } from "@/modules/sync/service";
+import { getProcessDetails } from "@/modules/processes/queries";
 
 export async function POST(
   _request: Request,
@@ -9,6 +10,12 @@ export async function POST(
   try {
     const user = await requireUser();
     const { id } = await params;
+    const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
+
+    if (!process) {
+      return NextResponse.json({ error: "Processo nao encontrado." }, { status: 404 });
+    }
+
     const result = await syncProcess(id, user.officeId);
     return NextResponse.json(result);
   } catch (error) {

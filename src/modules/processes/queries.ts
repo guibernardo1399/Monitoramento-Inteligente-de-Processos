@@ -82,11 +82,21 @@ export async function getProcesses(
   });
 }
 
-export async function getProcessDetails(processId: string, officeId: string) {
+export async function getProcessDetails(
+  processId: string,
+  officeId: string,
+  userId?: string,
+  isOwner = false,
+) {
   return prisma.process.findFirst({
     where: {
       id: processId,
       officeId,
+      ...(isOwner
+        ? {}
+        : {
+            internalResponsibleId: userId,
+          }),
     },
     select: {
       id: true,

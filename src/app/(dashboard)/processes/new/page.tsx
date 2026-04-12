@@ -9,15 +9,6 @@ export default async function NewProcessPage() {
     prisma.client.findMany({
       where: {
         officeId: user.officeId,
-        ...(user.role === "OWNER"
-          ? {}
-          : {
-              processes: {
-                some: {
-                  internalResponsibleId: user.id,
-                },
-              },
-            }),
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },

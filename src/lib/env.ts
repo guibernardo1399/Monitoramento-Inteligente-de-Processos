@@ -5,6 +5,7 @@ export const env = {
   appUrl: process.env.APP_URL || "http://localhost:3000",
   datajudBaseUrl: process.env.DATAJUD_BASE_URL || "",
   datajudApiKey: process.env.DATAJUD_API_KEY || "",
+  datajudUsePublicKeyFallback: process.env.DATAJUD_USE_PUBLIC_KEY_FALLBACK !== "false",
   datajudTribunalAlias: process.env.DATAJUD_TRIBUNAL_ALIAS || "",
   datajudTimeoutMs: Number(process.env.DATAJUD_TIMEOUT_MS || "15000"),
   djenBaseUrl: process.env.DJEN_BASE_URL || "",

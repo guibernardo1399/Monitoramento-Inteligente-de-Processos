@@ -106,6 +106,7 @@ Para ligar integracoes reais:
 
 1. Datajud:
    - preencha `DATAJUD_BASE_URL` e `DATAJUD_API_KEY`
+   - se `DATAJUD_API_KEY` ficar vazio, o sistema pode usar a chave publica oficial como fallback
    - se necessario, force `DATAJUD_TRIBUNAL_ALIAS`
    - o conector usa `POST /{alias}/_search` e normaliza a resposta
 2. DJEN:

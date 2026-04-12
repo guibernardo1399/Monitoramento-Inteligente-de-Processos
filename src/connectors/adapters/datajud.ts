@@ -4,6 +4,9 @@ import { mockProcessSnapshots } from "@/connectors/mocks/mock-data";
 import { fetchJson } from "@/connectors/utils/http";
 import { normalizeCnjNumber, resolveDatajudAlias } from "@/connectors/utils/tribunal-alias";
 
+const OFFICIAL_PUBLIC_DATAJUD_API_KEY =
+  "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
+
 type DatajudHit = {
   _source?: {
     tribunal?: string;
@@ -28,7 +31,9 @@ type DatajudResponse = {
 
 export class DatajudConnector implements ProcessDataConnector {
   key = "DATAJUD";
-  supportsLiveData = Boolean(env.datajudBaseUrl && env.datajudApiKey);
+  supportsLiveData = Boolean(
+    env.datajudBaseUrl && (env.datajudApiKey || env.datajudUsePublicKeyFallback),
+  );
 
   async fetchProcessByCNJ(cnjNumber: string) {
     if (!this.supportsLiveData || env.useMockConnectors) {
@@ -56,12 +61,13 @@ export class DatajudConnector implements ProcessDataConnector {
       ],
     };
 
+    const apiKey = env.datajudApiKey || OFFICIAL_PUBLIC_DATAJUD_API_KEY;
     const url = `${env.datajudBaseUrl.replace(/\/$/, "")}/${alias}/_search`;
     const response = await fetchJson<DatajudResponse>(url, {
       method: "POST",
       timeoutMs: env.datajudTimeoutMs,
       headers: {
-        Authorization: `APIKey ${env.datajudApiKey}`,
+        Authorization: `APIKey ${apiKey}`,
       },
       body: JSON.stringify(body),
     });

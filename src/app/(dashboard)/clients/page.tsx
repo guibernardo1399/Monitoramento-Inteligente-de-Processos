@@ -1,3 +1,4 @@
+import { DeleteClientButton } from "@/components/clients/delete-client-button";
 import { ClientForm } from "@/components/forms/client-form";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/server/db/prisma";
@@ -66,6 +67,19 @@ export default async function ClientsPage() {
                 </span>
               </div>
               {client.notes ? <p className="mt-3 text-sm text-steel">{client.notes}</p> : null}
+              {user.role === "OWNER" ? (
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-500">
+                    {client._count.processes > 0
+                      ? "Apague primeiro os processos vinculados para remover este cliente."
+                      : "Cliente sem processos vinculados."}
+                  </p>
+                  <DeleteClientButton
+                    clientId={client.id}
+                    disabled={client._count.processes > 0}
+                  />
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

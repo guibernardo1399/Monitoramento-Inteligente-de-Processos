@@ -19,15 +19,12 @@ export function ClientForm() {
     setSuccess(null);
 
     const formData = new FormData(event.currentTarget);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
       const response = await fetch("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(Object.fromEntries(formData.entries())),
-        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -38,18 +35,11 @@ export function ClientForm() {
 
       event.currentTarget.reset();
       setSuccess("Cliente cadastrado com sucesso.");
-      setLoading(false);
-      router.replace(`/clients?atualizado=${Date.now()}`);
-      router.refresh();
+      window.location.href = `/clients?atualizado=${Date.now()}`;
       return;
     } catch (error) {
-      setError(
-        error instanceof Error && error.name === "AbortError"
-          ? "O cadastro demorou mais do que o esperado. Tente novamente."
-          : "Nao foi possivel cadastrar o cliente.",
-      );
+      setError("Nao foi possivel cadastrar o cliente.");
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   }

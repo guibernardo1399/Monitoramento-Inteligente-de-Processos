@@ -3,6 +3,7 @@ import type { ProcessDataConnector } from "@/connectors/types";
 import { mockProcessSnapshots } from "@/connectors/mocks/mock-data";
 import { fetchJson } from "@/connectors/utils/http";
 import { normalizeCnjNumber, resolveDatajudAlias } from "@/connectors/utils/tribunal-alias";
+import { humanizeIdentifier } from "@/lib/utils";
 
 const OFFICIAL_PUBLIC_DATAJUD_API_KEY =
   "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
@@ -28,6 +29,43 @@ type DatajudResponse = {
     hits?: DatajudHit[];
   };
 };
+
+function normalizeComplementValue(value?: string | number) {
+  if (value === undefined || value === null) return "";
+  return humanizeIdentifier(String(value));
+}
+
+function normalizeComplementLabel(value?: string) {
+  if (!value) return "";
+  return humanizeIdentifier(value);
+}
+
+function buildMovementDescription(
+  movement: NonNullable<NonNullable<DatajudHit["_source"]>["movimentos"]>[number],
+) {
+  const details =
+    movement.complementosTabelados
+      ?.map((item) => {
+        const label = normalizeComplementLabel(item.descricao || item.nome);
+        const value = normalizeComplementValue(item.valor);
+
+        if (label && value && label !== value) return `${label}: ${value}`;
+        return label || value;
+      })
+      .filter(Boolean) || [];
+
+  const uniqueDetails = [...new Set(details)];
+
+  if (uniqueDetails.length > 0) {
+    return uniqueDetails.join(" • ");
+  }
+
+  if (movement.nome) {
+    return `${humanizeIdentifier(movement.nome)} registrada no processo.`;
+  }
+
+  return "Movimentação processual registrada pelo tribunal.";
+}
 
 export class DatajudConnector implements ProcessDataConnector {
   key = "DATAJUD";
@@ -87,12 +125,8 @@ export class DatajudConnector implements ProcessDataConnector {
         source.movimentos?.map((movement) => ({
           externalId: movement.codigo ? String(movement.codigo) : undefined,
           date: movement.dataHora || new Date().toISOString(),
-          title: movement.nome || "Movimentacao",
-          description:
-            movement.complementosTabelados
-              ?.map((item) => item.descricao || item.nome || String(item.valor || ""))
-              .filter(Boolean)
-              .join(" • ") || movement.nome || "Movimentacao processual obtida pelo Datajud.",
+          title: humanizeIdentifier(movement.nome || "Movimentação"),
+          description: buildMovementDescription(movement),
           code: movement.codigo ? String(movement.codigo) : undefined,
           rawPayload: movement,
         })) || [],

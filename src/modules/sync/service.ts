@@ -5,6 +5,25 @@ import { datajudConnector } from "@/connectors";
 import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
 import { buildMovementAlertData } from "@/modules/alerts/service";
 import { syncProcessPublications } from "@/modules/publications/sync-service";
+import { summarizeText } from "@/lib/utils";
+
+function summarizeSyncWarning(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("djen bloqueou")) {
+    return "Publicações Oficiais Ainda Não Disponíveis. Tente Nova Sincronização Mais Tarde.";
+  }
+
+  if (normalized.includes("carga inicial")) {
+    return "Carga Inicial Parcial. Tente Nova Sincronização Mais Tarde.";
+  }
+
+  if (normalized.includes("sincronizacao concluida parcialmente")) {
+    return "Sincronização Parcial. Tente Novamente Mais Tarde.";
+  }
+
+  return summarizeText(message, 140);
+}
 
 export async function syncProcess(
   processId: string,
@@ -96,9 +115,13 @@ export async function syncProcess(
       message:
         hasPartialPublicationData
           ? options?.publicationMode === "initial"
-            ? `O processo foi cadastrado, mas a carga inicial ficou parcial. Publicacoes recuperadas: ${publicationSync.newPublications}.`
-            : `Sincronizacao parcial concluida com ${publicationSync.newPublications} nova(s) publicacao(oes) oficiais do DJEN.`
-          : `Nao foi possivel concluir a sincronizacao deste processo. ${errorMessage}`,
+            ? summarizeSyncWarning(
+                `O processo foi cadastrado, mas a carga inicial ficou parcial. Publicacoes recuperadas: ${publicationSync.newPublications}. ${errorMessage}`,
+              )
+            : summarizeSyncWarning(
+                `Sincronizacao parcial concluida com ${publicationSync.newPublications} nova(s) publicacao(oes) oficiais do DJEN. ${errorMessage}`,
+              )
+          : summarizeSyncWarning(`Nao foi possivel concluir a sincronizacao deste processo. ${errorMessage}`),
     };
   }
 
@@ -170,7 +193,7 @@ export async function syncProcess(
             officeId,
             processId,
             title: `Nova movimentacao: ${movement.title}`,
-            message: `${movement.description}. ${humanReviewLabel(severity)}.`,
+            message: `${summarizeText(movement.description, 160)} ${humanReviewLabel(severity)}.`,
             severity,
           });
         }),
@@ -217,8 +240,12 @@ export async function syncProcess(
     message:
       snapshotError || publicationError
         ? options?.publicationMode === "initial"
-          ? `O processo foi cadastrado e os dados principais entraram, mas parte da carga inicial nao foi concluida. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`
-          : `Sincronizacao concluida parcialmente. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`
+          ? summarizeSyncWarning(
+              `O processo foi cadastrado e os dados principais entraram, mas parte da carga inicial nao foi concluida. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`,
+            )
+          : summarizeSyncWarning(
+              `Sincronizacao concluida parcialmente. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`,
+            )
         : movementCreates.length > 0 || publicationSync.newPublications > 0
         ? options?.publicationMode === "initial"
           ? `Cadastro concluido com carga historica inicial: ${movementCreates.length} movimentacao(oes) e ${publicationSync.newPublications} publicacao(oes) registradas para este processo.`

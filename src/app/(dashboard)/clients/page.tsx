@@ -23,9 +23,10 @@ export default async function ClientsPage() {
       name: true,
       document: true,
       notes: true,
-      processes: {
-        where: user.role === "OWNER" ? undefined : { internalResponsibleId: user.id },
-        select: { id: true },
+      _count: {
+        select: {
+          processes: user.role === "OWNER" ? true : { where: { internalResponsibleId: user.id } },
+        },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -61,7 +62,7 @@ export default async function ClientsPage() {
                   <p className="text-sm text-steel">{client.document || "Documento nao informado"}</p>
                 </div>
                 <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand">
-                  {client.processes.length} processo(s)
+                  {client._count.processes} processo(s)
                 </span>
               </div>
               {client.notes ? <p className="mt-3 text-sm text-steel">{client.notes}</p> : null}

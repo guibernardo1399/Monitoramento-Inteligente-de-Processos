@@ -9,31 +9,49 @@ import { Textarea } from "@/components/ui/textarea";
 export function ClientForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     const formData = new FormData(event.currentTarget);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch("/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(formData.entries())),
-    });
+    try {
+      const response = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setError(body?.error || "Nao foi possivel cadastrar o cliente.");
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        setError(body?.error || "Nao foi possivel cadastrar o cliente.");
+        return;
+      }
+
+      event.currentTarget.reset();
+      setSuccess("Cliente cadastrado com sucesso.");
       setLoading(false);
+      router.replace(`/clients?atualizado=${Date.now()}`);
+      router.refresh();
       return;
+    } catch (error) {
+      setError(
+        error instanceof Error && error.name === "AbortError"
+          ? "O cadastro demorou mais do que o esperado. Tente novamente."
+          : "Nao foi possivel cadastrar o cliente.",
+      );
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
     }
-
-    event.currentTarget.reset();
-    router.refresh();
-    setLoading(false);
   }
 
   return (
@@ -52,6 +70,7 @@ export function ClientForm() {
           <Textarea name="notes" placeholder="Informacoes relevantes do relacionamento." />
         </div>
       </fieldset>
+      {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <Button type="submit" fullWidth disabled={loading}>
         {loading ? "Cadastrando cliente..." : "Adicionar cliente"}

@@ -3,6 +3,18 @@ import { generateProcessPdfReport } from "@/modules/processes/report";
 import { requireUser } from "@/server/auth/session";
 import { getProcessDetails } from "@/modules/processes/queries";
 
+function buildClientReportFilename(clientName: string) {
+  const normalized = clientName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+  return normalized || "cliente";
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -21,7 +33,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="relatorio-${process.cnjNumber}.pdf"`,
+      "Content-Disposition": `attachment; filename="relatorio-${buildClientReportFilename(process.client.name)}.pdf"`,
     },
   });
 }

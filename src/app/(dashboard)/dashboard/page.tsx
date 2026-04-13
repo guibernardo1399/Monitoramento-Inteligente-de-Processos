@@ -1,9 +1,11 @@
 import { AlertTriangle, BellRing, BriefcaseBusiness, RefreshCw } from "lucide-react";
 import { OpenAlertButton } from "@/components/dashboard/open-alert-button";
+import { SyncAllProcessesButton } from "@/components/dashboard/sync-all-processes-button";
 import { Card } from "@/components/ui/card";
 import { SeverityBadge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { formatDateTime, summarizeText } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
+import { buildPublicationSummary } from "@/modules/processes/summaries";
 import { getDashboardData } from "@/modules/dashboard/queries";
 import { requireUser } from "@/server/auth/session";
 
@@ -14,6 +16,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-4">
+      <Card className="bg-white/95">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Sincronização da Carteira</h2>
+            <p className="mt-1 text-sm text-steel">
+              Atualize todos os processos monitorados {isOwner ? "do escritório" : "sob sua responsabilidade"} de uma vez.
+            </p>
+          </div>
+          <SyncAllProcessesButton />
+        </div>
+      </Card>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Processos Monitorados"
@@ -90,7 +104,11 @@ export default async function DashboardPage() {
                     <span className="text-xs text-steel">{formatDateTime(publication.publicationDate)}</span>
                   </div>
                   <p className="mt-2 text-sm text-steel">
-                    {summarizeText(publication.excerpt || publication.content, 140)}
+                    {buildPublicationSummary({
+                      title: publication.title,
+                      excerpt: publication.excerpt,
+                      content: publication.content,
+                    })}
                   </p>
                   <p className="mt-2 text-xs font-medium text-slate-700">
                     Processo: {publication.process.cnjNumber}

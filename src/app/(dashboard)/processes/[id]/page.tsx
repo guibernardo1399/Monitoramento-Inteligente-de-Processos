@@ -14,6 +14,7 @@ import {
   summarizeText,
 } from "@/lib/utils";
 import { getProcessDetails } from "@/modules/processes/queries";
+import { buildMovementSummary, buildPublicationSummary } from "@/modules/processes/summaries";
 import { requireUser } from "@/server/auth/session";
 
 function buildVisibleSyncNotice(log?: {
@@ -51,7 +52,7 @@ export default async function ProcessDetailsPage({
       id: movement.id,
       date: movement.movementDate,
       title: movement.title,
-      description: ensureSentence(movement.description),
+      description: buildMovementSummary(movement.title, movement.description),
       type: "movement" as const,
       sourceUrl: extractPublicSourceUrl(movement.rawPayload),
     })),
@@ -65,7 +66,13 @@ export default async function ProcessDetailsPage({
           : null,
         `Publicação: ${formatDateTime(publication.publicationDate)}`,
         publication.actType ? `Tipo: ${publication.actType}` : null,
-        summarizeText(publication.excerpt || publication.content, 180),
+        buildPublicationSummary({
+          title: publication.title,
+          actType: publication.actType,
+          excerpt: publication.excerpt,
+          content: publication.content,
+          hasDeadlineHint: publication.hasDeadlineHint,
+        }),
       ]
         .filter(Boolean)
         .join(" • "),
@@ -174,7 +181,13 @@ export default async function ProcessDetailsPage({
                       <SeverityBadge severity={publication.hasDeadlineHint ? "CRITICAL" : "ATTENTION"} />
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-700">
-                      {publication.excerpt || publication.content}
+                      {buildPublicationSummary({
+                        title: publication.title,
+                        actType: publication.actType,
+                        excerpt: publication.excerpt,
+                        content: publication.content,
+                        hasDeadlineHint: publication.hasDeadlineHint,
+                      })}
                     </p>
                     {extractPublicSourceUrl(publication.rawPayload) ? (
                       <div className="mt-3">

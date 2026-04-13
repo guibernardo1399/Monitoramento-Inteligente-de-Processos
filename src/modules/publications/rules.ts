@@ -1,5 +1,6 @@
 import type { ExternalPublication } from "@/connectors/types";
 import type { AlertSeverity } from "@/modules/alerts/rules";
+import { buildPublicationSummary } from "@/modules/processes/summaries";
 
 function loweredText(publication: ExternalPublication) {
   return [
@@ -32,15 +33,13 @@ export function classifyPublicationSeverity(publication: ExternalPublication): A
 }
 
 export function buildPublicationAlertMessage(publication: ExternalPublication, severity: AlertSeverity) {
-  const excerpt = publication.excerpt || publication.content;
-
   if (severity === "CRITICAL") {
-    return `${excerpt} Possivel impacto em prazo ou providencia processual. Revisao humana obrigatoria.`;
+    return `${buildPublicationSummary(publication)} Revisão humana obrigatória.`;
   }
 
   if (severity === "ATTENTION") {
-    return `${excerpt} Publicacao oficial identificada para acompanhamento. Revisao humana recomendada.`;
+    return `${buildPublicationSummary(publication)} Revisão humana recomendada.`;
   }
 
-  return `${excerpt} Publicacao oficial registrada para historico e acompanhamento.`;
+  return buildPublicationSummary(publication);
 }

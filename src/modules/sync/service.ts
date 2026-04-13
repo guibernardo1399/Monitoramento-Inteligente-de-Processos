@@ -4,6 +4,7 @@ import { prisma } from "@/server/db/prisma";
 import { datajudConnector } from "@/connectors";
 import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
 import { buildMovementAlertData } from "@/modules/alerts/service";
+import { buildMovementSummary } from "@/modules/processes/summaries";
 import { syncProcessPublications } from "@/modules/publications/sync-service";
 import { ensureSentence, summarizeText } from "@/lib/utils";
 
@@ -30,18 +31,8 @@ function buildMovementAlertMessage(input: {
   description: string;
   severity: ReturnType<typeof classifyMovement>;
 }) {
-  const normalizedDescription = input.description.trim();
-  const hasLowContextDescription =
-    !normalizedDescription ||
-    /^(tipo de documento|tipo de petição|tipo de movimentação|movimentação processual)\.?$/i.test(
-      normalizedDescription,
-    );
-
-  const baseMessage = hasLowContextDescription
-    ? `${input.title} registrada no processo.`
-    : ensureSentence(summarizeText(normalizedDescription, 160));
-
-  return `${baseMessage} ${humanReviewLabel(input.severity)}.`;
+  const summary = buildMovementSummary(input.title, input.description);
+  return `${ensureSentence(summarizeText(summary, 160))} ${humanReviewLabel(input.severity)}.`;
 }
 
 export async function syncProcess(

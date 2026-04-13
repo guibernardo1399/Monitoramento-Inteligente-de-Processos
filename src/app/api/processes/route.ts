@@ -78,9 +78,41 @@ export async function POST(request: Request) {
       });
     }
 
-    await syncProcess(process.id, user.officeId, { publicationMode: "initial" });
+    try {
+      const syncResult = await syncProcess(process.id, user.officeId, { publicationMode: "initial" });
 
-    return NextResponse.json({ id: process.id });
+      return NextResponse.json({
+        id: process.id,
+        warning: syncResult.status !== "SUCCESS" ? syncResult.message : null,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "O processo foi cadastrado, mas a carga inicial nao terminou como esperado.";
+
+      await prisma.process.update({
+        where: { id: process.id },
+        data: { monitoringStatus: "ERROR" },
+      });
+
+      await prisma.syncLog.create({
+        data: {
+          officeId: user.officeId,
+          processId: process.id,
+          source: env.useMockConnectors ? "MOCK" : "DATAJUD",
+          startedAt: new Date(),
+          finishedAt: new Date(),
+          status: "FAILED",
+          errorMessage: message,
+        },
+      });
+
+      return NextResponse.json({
+        id: process.id,
+        warning: `O processo foi cadastrado, mas a carga inicial nao terminou por completo. ${message}`,
+      });
+    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(

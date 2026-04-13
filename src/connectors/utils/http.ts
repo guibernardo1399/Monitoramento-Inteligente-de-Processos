@@ -22,6 +22,12 @@ export async function fetchJson<T>(
     }
 
     return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`A consulta excedeu o tempo limite ao acessar ${url}.`);
+    }
+
+    throw error;
   } finally {
     clearTimeout(timeout);
   }

@@ -12,11 +12,14 @@ import { requireUser } from "@/server/auth/session";
 
 export default async function ProcessDetailsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ aviso?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
 
   if (!process) notFound();
@@ -49,6 +52,11 @@ export default async function ProcessDetailsPage({
 
   return (
     <div className="space-y-4">
+      {resolvedSearchParams?.aviso ? (
+        <Card>
+          <p className="text-sm leading-6 text-amber-900">{resolvedSearchParams.aviso}</p>
+        </Card>
+      ) : null}
       <Card>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>

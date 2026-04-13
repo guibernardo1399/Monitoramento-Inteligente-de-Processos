@@ -45,7 +45,9 @@ export function ProcessForm({
     }
 
     const body = await response.json();
-    router.push(`/processes/${body.id}`);
+    const params = new URLSearchParams();
+    if (body?.warning) params.set("aviso", body.warning);
+    router.push(`/processes/${body.id}${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
   return (

@@ -21,20 +21,45 @@ export async function syncProcess(
 
   const syncStart = new Date();
   const syncSource = env.useMockConnectors ? "MOCK" : "DATAJUD";
-  const snapshot = await datajudConnector.fetchProcessByCNJ(process.cnjNumber);
-  const publicationSync = await syncProcessPublications({
-    processId,
-    officeId,
-    cnjNumber: process.cnjNumber,
-    court: process.court,
-    judgingBody: process.judgingBody,
-    lawyerName: process.lawyerName,
-    lawyerOab: process.lawyerOab,
+  let snapshot = null;
+  let snapshotError: string | null = null;
+
+  try {
+    snapshot = await datajudConnector.fetchProcessByCNJ(process.cnjNumber);
+  } catch (error) {
+    snapshotError = error instanceof Error ? error.message : "Falha ao consultar os dados processuais.";
+  }
+
+  let publicationSync = {
+    fetchedPublications: [] as unknown[],
+    newPublications: 0,
+    latestPublicationDate: null as Date | null,
     mode: options?.publicationMode || "incremental",
-  });
+  };
+  let publicationError: string | null = null;
+
+  try {
+    publicationSync = await syncProcessPublications({
+      processId,
+      officeId,
+      cnjNumber: process.cnjNumber,
+      court: process.court,
+      judgingBody: process.judgingBody,
+      lawyerName: process.lawyerName,
+      lawyerOab: process.lawyerOab,
+      mode: options?.publicationMode || "incremental",
+    });
+  } catch (error) {
+    publicationError = error instanceof Error ? error.message : "Falha ao consultar publicacoes oficiais.";
+  }
 
   if (!snapshot) {
     const syncedAt = new Date();
+    const hasPartialPublicationData = publicationSync.newPublications > 0 || Boolean(publicationSync.latestPublicationDate);
+    const status = hasPartialPublicationData ? "PARTIAL" : "FAILED";
+    const errorMessage = [snapshotError, publicationError]
+      .filter(Boolean)
+      .join(" | ") || "Nenhum dado retornado pelo conector configurado.";
 
     await prisma.$transaction(async (tx) => {
       await tx.process.update({
@@ -42,6 +67,7 @@ export async function syncProcess(
         data: {
           lastSyncedAt: syncedAt,
           lastEventAt: publicationSync.latestPublicationDate || process.lastEventAt || syncedAt,
+          monitoringStatus: hasPartialPublicationData ? "ACTIVE" : "ERROR",
         },
       });
 
@@ -52,11 +78,8 @@ export async function syncProcess(
           source: syncSource,
           startedAt: syncStart,
           finishedAt: syncedAt,
-          status: publicationSync.newPublications > 0 ? "PARTIAL" : "FAILED",
-          errorMessage:
-            publicationSync.newPublications > 0
-              ? "Dados processuais indisponiveis no momento, mas publicacoes oficiais foram sincronizadas."
-              : "Nenhum dado retornado pelo conector configurado.",
+          status,
+          errorMessage,
           rawPayload: JSON.stringify({
             snapshot,
             publications: publicationSync.fetchedPublications,
@@ -68,14 +91,14 @@ export async function syncProcess(
     return {
       newMovements: 0,
       newPublications: publicationSync.newPublications,
-      status: publicationSync.newPublications > 0 ? ("PARTIAL" as const) : ("FAILED" as const),
-      syncedAt: publicationSync.newPublications > 0 ? syncedAt.toISOString() : null,
+      status: status as "PARTIAL" | "FAILED",
+      syncedAt: hasPartialPublicationData ? syncedAt.toISOString() : null,
       message:
-        publicationSync.newPublications > 0
+        hasPartialPublicationData
           ? options?.publicationMode === "initial"
-            ? `Carga historica inicial concluida com ${publicationSync.newPublications} publicacao(oes) oficiais recuperadas do DJEN.`
+            ? `O processo foi cadastrado, mas a carga inicial ficou parcial. Publicacoes recuperadas: ${publicationSync.newPublications}.`
             : `Sincronizacao parcial concluida com ${publicationSync.newPublications} nova(s) publicacao(oes) oficiais do DJEN.`
-          : "A sincronizacao foi executada, mas nao encontramos dados atualizados para esse processo.",
+          : `Nao foi possivel concluir a sincronizacao deste processo. ${errorMessage}`,
     };
   }
 
@@ -122,6 +145,7 @@ export async function syncProcess(
         externalReference: snapshot.externalReference,
         lastSyncedAt: syncedAt,
         lastEventAt: publicationSync.latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
+        monitoringStatus: publicationError ? "ERROR" : "ACTIVE",
       },
     });
 
@@ -159,7 +183,12 @@ export async function syncProcess(
         startedAt: syncStart,
         finishedAt: syncedAt,
         status:
-          publicationSync.newPublications > 0 || movementCreates.length > 0 ? "SUCCESS" : "PARTIAL",
+          snapshotError || publicationError
+            ? "PARTIAL"
+            : publicationSync.newPublications > 0 || movementCreates.length > 0
+              ? "SUCCESS"
+              : "PARTIAL",
+        errorMessage: [snapshotError, publicationError].filter(Boolean).join(" | ") || null,
         rawPayload: JSON.stringify({
           snapshot,
           publications: publicationSync.fetchedPublications,
@@ -172,10 +201,19 @@ export async function syncProcess(
   return {
     newMovements: movementCreates.length,
     newPublications: publicationSync.newPublications,
-    status: publicationSync.newPublications > 0 || movementCreates.length > 0 ? "SUCCESS" : "PARTIAL",
+    status:
+      snapshotError || publicationError
+        ? ("PARTIAL" as const)
+        : publicationSync.newPublications > 0 || movementCreates.length > 0
+          ? ("SUCCESS" as const)
+          : ("PARTIAL" as const),
     syncedAt: syncedAt.toISOString(),
     message:
-      movementCreates.length > 0 || publicationSync.newPublications > 0
+      snapshotError || publicationError
+        ? options?.publicationMode === "initial"
+          ? `O processo foi cadastrado e os dados principais entraram, mas parte da carga inicial nao foi concluida. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`
+          : `Sincronizacao concluida parcialmente. ${[snapshotError, publicationError].filter(Boolean).join(" | ")}`
+        : movementCreates.length > 0 || publicationSync.newPublications > 0
         ? options?.publicationMode === "initial"
           ? `Cadastro concluido com carga historica inicial: ${movementCreates.length} movimentacao(oes) e ${publicationSync.newPublications} publicacao(oes) registradas para este processo.`
           : `Sincronizacao concluida com ${movementCreates.length} nova(s) movimentacao(oes) e ${publicationSync.newPublications} nova(s) publicacao(oes).`

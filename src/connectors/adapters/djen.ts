@@ -31,6 +31,11 @@ type DjenApiResponse = {
   data?: DjenApiItem[];
 };
 
+type DjenQueryVariant = {
+  name: string;
+  params: Record<string, string>;
+};
+
 function compactWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -94,34 +99,81 @@ export class DjenConnector implements PublicationConnector {
       return mockProcessSnapshots[filters.cnjNumber]?.publications ?? [];
     }
 
-    const url = new URL(env.djenApiPath, env.djenBaseUrl);
-    url.searchParams.set("numeroProcesso", normalizeCnjNumber(filters.cnjNumber));
-    url.searchParams.set("pagina", "1");
-    url.searchParams.set("itensPorPagina", "50");
-
-    if (filters.court) url.searchParams.set("siglaTribunal", filters.court.replace(/\s+/g, "").toUpperCase());
-    if (filters.judgingBody) url.searchParams.set("orgaoJulgador", filters.judgingBody);
-    if (filters.lawyerName) url.searchParams.set("nomeAdvogado", filters.lawyerName);
-    if (filters.lawyerOab) url.searchParams.set("numeroOab", filters.lawyerOab);
-    if (filters.publicationDateFrom) url.searchParams.set("dataPublicacaoInicio", filters.publicationDateFrom);
-    if (filters.publicationDateTo) url.searchParams.set("dataPublicacaoFim", filters.publicationDateTo);
-    if (filters.availabilityDateFrom) {
-      url.searchParams.set("dataDisponibilizacaoInicio", filters.availabilityDateFrom);
-    }
-    if (filters.availabilityDateTo) {
-      url.searchParams.set("dataDisponibilizacaoFim", filters.availabilityDateTo);
-    }
-
-    const response = await fetchJson<DjenApiResponse>(url.toString(), {
-      method: "GET",
-      timeoutMs: env.djenTimeoutMs,
-      headers: {
-        Accept: "application/json",
+    const normalizedCnj = normalizeCnjNumber(filters.cnjNumber);
+    const variants: DjenQueryVariant[] = [
+      {
+        name: "numero-processo-tribunal-periodo",
+        params: {
+          numeroProcesso: normalizedCnj,
+          pagina: "1",
+          itensPorPagina: "50",
+          ...(filters.court ? { siglaTribunal: filters.court.replace(/\s+/g, "").toUpperCase() } : {}),
+          ...(filters.availabilityDateFrom
+            ? { dataDisponibilizacaoInicio: filters.availabilityDateFrom }
+            : {}),
+          ...(filters.availabilityDateTo ? { dataDisponibilizacaoFim: filters.availabilityDateTo } : {}),
+        },
       },
-    });
+      {
+        name: "numero-processo-periodo",
+        params: {
+          numeroProcesso: normalizedCnj,
+          pagina: "1",
+          itensPorPagina: "50",
+          ...(filters.availabilityDateFrom
+            ? { dataDisponibilizacaoInicio: filters.availabilityDateFrom }
+            : {}),
+          ...(filters.availabilityDateTo ? { dataDisponibilizacaoFim: filters.availabilityDateTo } : {}),
+        },
+      },
+      {
+        name: "numero-processo-puro",
+        params: {
+          numeroProcesso: normalizedCnj,
+          pagina: "1",
+          itensPorPagina: "50",
+        },
+      },
+    ];
 
-    const items = response.items || response.content || response.data || [];
+    let lastError: Error | null = null;
 
-    return items.map((item) => normalizePublication(item, filters));
+    for (const variant of variants) {
+      try {
+        const url = new URL(env.djenApiPath, env.djenBaseUrl);
+
+        Object.entries(variant.params).forEach(([key, value]) => {
+          url.searchParams.set(key, value);
+        });
+
+        const response = await fetchJson<DjenApiResponse>(url.toString(), {
+          method: "GET",
+          timeoutMs: env.djenTimeoutMs,
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "PJe-DataCollector/1.0",
+          },
+        });
+
+        const items = response.items || response.content || response.data || [];
+        return items.map((item) => normalizePublication(item, filters));
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Falha ao consultar o DJEN.");
+
+        if (lastError.message.includes("HTTP 403")) {
+          continue;
+        }
+
+        throw lastError;
+      }
+    }
+
+    if (lastError?.message.includes("HTTP 403")) {
+      throw new Error(
+        "O DJEN bloqueou a consulta publica para este processo no momento (HTTP 403). O processo pode ser cadastrado, mas as publicacoes oficiais podem precisar de uma nova tentativa depois.",
+      );
+    }
+
+    throw lastError || new Error("Nao foi possivel consultar o DJEN no momento.");
   }
 }

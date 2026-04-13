@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { prisma } from "@/server/db/prisma";
 import { datajudConnector } from "@/connectors";
 import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
+import { buildMovementAlertData } from "@/modules/alerts/service";
 import { syncProcessPublications } from "@/modules/publications/sync-service";
 
 export async function syncProcess(
@@ -61,17 +62,16 @@ export async function syncProcess(
       .filter(Boolean)
       .join(" | ") || "Nenhum dado retornado pelo conector configurado.";
 
-    await prisma.$transaction(async (tx) => {
-      await tx.process.update({
+    await prisma.$transaction([
+      prisma.process.update({
         where: { id: processId },
         data: {
           lastSyncedAt: syncedAt,
           lastEventAt: publicationSync.latestPublicationDate || process.lastEventAt || syncedAt,
           monitoringStatus: hasPartialPublicationData ? "ACTIVE" : "ERROR",
         },
-      });
-
-      await tx.syncLog.create({
+      }),
+      prisma.syncLog.create({
         data: {
           officeId,
           processId,
@@ -85,8 +85,8 @@ export async function syncProcess(
             publications: publicationSync.fetchedPublications,
           }),
         },
-      });
-    });
+      }),
+    ]);
 
     return {
       newMovements: 0,
@@ -136,8 +136,8 @@ export async function syncProcess(
 
   const syncedAt = new Date();
 
-  await prisma.$transaction(async (tx) => {
-    await tx.process.update({
+  const operations: Prisma.PrismaPromise<unknown>[] = [
+    prisma.process.update({
       where: { id: processId },
       data: {
         court: snapshot.court,
@@ -149,35 +149,37 @@ export async function syncProcess(
         lastEventAt: publicationSync.latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
         monitoringStatus: publicationError ? "ERROR" : "ACTIVE",
       },
-    });
+    }),
+  ];
 
-    if (movementCreates.length > 0) {
-      await tx.processMovement.createMany({
+  if (movementCreates.length > 0) {
+    operations.push(
+      prisma.processMovement.createMany({
         data: movementCreates,
-      });
+      }),
+      prisma.alert.createMany({
+        data: movementCreates.map((movement) => {
+          const severity = classifyMovement({
+            date: new Date(movement.movementDate).toISOString(),
+            title: movement.title,
+            description: movement.description,
+            code: movement.code ?? undefined,
+          });
 
-      for (const movement of movementCreates) {
-        const severity = classifyMovement({
-          date: new Date(movement.movementDate).toISOString(),
-          title: movement.title,
-          description: movement.description,
-          code: movement.code ?? undefined,
-        });
-
-        await tx.alert.create({
-          data: {
+          return buildMovementAlertData({
             officeId,
             processId,
             title: `Nova movimentacao: ${movement.title}`,
             message: `${movement.description}. ${humanReviewLabel(severity)}.`,
             severity,
-            requiresHumanReview: severity !== "INFO",
-          },
-        });
-      }
-    }
+          });
+        }),
+      }),
+    );
+  }
 
-    await tx.syncLog.create({
+  operations.push(
+    prisma.syncLog.create({
       data: {
         officeId,
         processId,
@@ -197,8 +199,10 @@ export async function syncProcess(
         }),
         externalReference: snapshot.externalReference,
       },
-    });
-  });
+    }),
+  );
+
+  await prisma.$transaction(operations);
 
   return {
     newMovements: movementCreates.length,

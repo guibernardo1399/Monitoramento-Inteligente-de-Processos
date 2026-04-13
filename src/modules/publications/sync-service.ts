@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 import { prisma } from "@/server/db/prisma";
 import { djenConnector } from "@/connectors";
 import type { ExternalPublication } from "@/connectors/types";
-import { createPublicationAlert } from "@/modules/alerts/service";
+import { buildPublicationAlertData } from "@/modules/alerts/service";
 
 function publicationFingerprint(publication: ExternalPublication) {
   return createHash("sha256")
@@ -111,8 +111,8 @@ export async function syncProcessPublications(input: {
     };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.processPublication.createMany({
+  await prisma.$transaction([
+    prisma.processPublication.createMany({
       data: freshPublications.map((publication) => ({
         processId: input.processId,
         externalId: publication.externalId,
@@ -131,16 +131,17 @@ export async function syncProcessPublications(input: {
         hasDeadlineHint: Boolean(publication.hasDeadlineHint),
         rawPayload: publication.rawPayload ? JSON.stringify(publication.rawPayload) : null,
       })),
-    });
-
-    for (const publication of freshPublications) {
-      await createPublicationAlert(tx, {
-        officeId: input.officeId,
-        processId: input.processId,
-        publication,
-      });
-    }
-  });
+    }),
+    prisma.alert.createMany({
+      data: freshPublications.map((publication) =>
+        buildPublicationAlertData({
+          officeId: input.officeId,
+          processId: input.processId,
+          publication,
+        }),
+      ),
+    }),
+  ]);
 
   return {
     fetchedPublications: normalized,

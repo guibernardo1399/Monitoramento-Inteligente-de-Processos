@@ -5,7 +5,7 @@ import { datajudConnector } from "@/connectors";
 import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
 import { buildMovementAlertData } from "@/modules/alerts/service";
 import { syncProcessPublications } from "@/modules/publications/sync-service";
-import { summarizeText } from "@/lib/utils";
+import { ensureSentence, summarizeText } from "@/lib/utils";
 
 function summarizeSyncWarning(message: string) {
   const normalized = message.toLowerCase();
@@ -193,7 +193,7 @@ export async function syncProcess(
             officeId,
             processId,
             title: `Nova Movimentação: ${movement.title}`,
-            message: `${summarizeText(movement.description, 160)} ${humanReviewLabel(severity)}.`,
+            message: `${ensureSentence(summarizeText(movement.description, 160))} ${humanReviewLabel(severity)}.`,
             severity,
           });
         }),

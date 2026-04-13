@@ -97,3 +97,9 @@ export function humanizeSentence(value: string) {
   if (!titleized) return titleized;
   return `${titleized.charAt(0).toUpperCase()}${titleized.slice(1)}`;
 }
+
+export function ensureSentence(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return normalized;
+  return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
+}

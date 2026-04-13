@@ -6,7 +6,7 @@ import { SyncButton } from "@/components/process/sync-button";
 import { ProcessTimeline } from "@/components/process/timeline";
 import { AlertStatusBadge, SeverityBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatDate, formatDateTime, summarizeText } from "@/lib/utils";
+import { ensureSentence, formatDate, formatDateTime, summarizeText } from "@/lib/utils";
 import { getProcessDetails } from "@/modules/processes/queries";
 import { requireUser } from "@/server/auth/session";
 
@@ -24,13 +24,18 @@ export default async function ProcessDetailsPage({
 
   if (!process) notFound();
 
+  const movementByTitle = new Map(process.movements.map((movement) => [movement.title, movement]));
+  const publicationByTitle = new Map(process.publications.map((publication) => [publication.title, publication]));
+
   const timeline = [
     ...process.movements.map((movement) => ({
       id: movement.id,
       date: movement.movementDate,
       title: movement.title,
-      description: movement.description,
+      description: ensureSentence(movement.description),
       type: "movement" as const,
+      actionHref: `#movimento-${movement.id}`,
+      actionLabel: "Ver Movimentação",
     })),
     ...process.publications.map((publication) => ({
       id: publication.id,
@@ -51,14 +56,35 @@ export default async function ProcessDetailsPage({
       actionHref: `#publicacao-${publication.id}`,
       actionLabel: "Ir Para a Publicação",
     })),
-    ...process.alerts.map((alert) => ({
-      id: alert.id,
-      date: alert.createdAt,
-      title: alert.title,
-      description: alert.message,
-      type: "alert" as const,
-      severity: alert.severity,
-    })),
+    ...process.alerts.map((alert) => {
+      const movementTitle = alert.title.startsWith("Nova Movimentação: ")
+        ? alert.title.replace("Nova Movimentação: ", "")
+        : null;
+      const publicationTitle = alert.title.startsWith("Nova Publicação Oficial: ")
+        ? alert.title.replace("Nova Publicação Oficial: ", "")
+        : null;
+      const relatedMovement = movementTitle ? movementByTitle.get(movementTitle) : null;
+      const relatedPublication = publicationTitle ? publicationByTitle.get(publicationTitle) : null;
+
+      return {
+        id: alert.id,
+        date: alert.createdAt,
+        title: alert.title,
+        description: alert.message,
+        type: "alert" as const,
+        severity: alert.severity,
+        actionHref: relatedMovement
+          ? `#movimento-${relatedMovement.id}`
+          : relatedPublication
+            ? `#publicacao-${relatedPublication.id}`
+            : undefined,
+        actionLabel: relatedMovement
+          ? "Ir Para a Movimentação"
+          : relatedPublication
+            ? "Ir Para a Publicação"
+            : undefined,
+      };
+    }),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
@@ -93,6 +119,14 @@ export default async function ProcessDetailsPage({
                 Ir Para as Publicações
               </button>
             </a>
+            <a href="#movimentacoes-processuais">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:bg-slate-50"
+              >
+                Ir Para as Movimentações
+              </button>
+            </a>
             <ReportButton processId={process.id} />
             <SyncButton processId={process.id} />
             <DeleteProcessButton processId={process.id} />
@@ -124,6 +158,40 @@ export default async function ProcessDetailsPage({
                   {party.document ? <p className="mt-2 text-sm text-steel">{party.document}</p> : null}
                 </div>
               ))}
+            </div>
+          </Card>
+
+          <Card id="movimentacoes-processuais">
+            <h3 className="text-lg font-semibold text-ink">Movimentações Processuais</h3>
+            <p className="mt-2 text-sm text-slate-700">
+              Histórico das movimentações capturadas para este processo, com linguagem mais clara para facilitar a leitura do advogado.
+            </p>
+            <div className="mt-4 space-y-3">
+              {process.movements.length === 0 ? (
+                <div className="rounded-2xl border border-line p-4 text-sm text-slate-700">
+                  Nenhuma movimentação encontrada até o momento.
+                </div>
+              ) : (
+                process.movements.map((movement) => (
+                  <div
+                    key={movement.id}
+                    id={`movimento-${movement.id}`}
+                    className="rounded-2xl border border-line p-4"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h4 className="font-semibold text-ink">{movement.title}</h4>
+                        <p className="mt-2 text-sm text-slate-700">
+                          Registrada em {formatDateTime(movement.movementDate)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700">
+                      {ensureSentence(movement.description)}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
 
@@ -215,8 +283,12 @@ export default async function ProcessDetailsPage({
                   <p className="mt-2 text-slate-700">
                     Início: {formatDateTime(log.startedAt)} • Fim: {log.finishedAt ? formatDateTime(log.finishedAt) : "em andamento"}
                   </p>
-                  {log.errorMessage ? <p className="mt-2 text-rose-600">{log.errorMessage}</p> : null}
-                  {log.externalReference ? <p className="mt-2 text-slate-700">Referência Externa: {log.externalReference}</p> : null}
+                  {log.status === "PARTIAL" ? (
+                    <p className="mt-2 text-amber-700">Sincronização parcial. Tente novamente mais tarde.</p>
+                  ) : null}
+                  {log.status === "FAILED" ? (
+                    <p className="mt-2 text-rose-600">Não foi possível concluir esta sincronização.</p>
+                  ) : null}
                 </div>
               ))}
             </div>

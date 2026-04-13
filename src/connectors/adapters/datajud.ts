@@ -45,12 +45,20 @@ function normalizeComplementLabel(value?: string) {
 function buildMovementDescription(
   movement: NonNullable<NonNullable<DatajudHit["_source"]>["movimentos"]>[number],
 ) {
+  const genericLabels = new Set([
+    "Tipo de Documento",
+    "Tipo de Petição",
+    "Tipo de Movimentação",
+    "Movimentação Processual",
+  ]);
+
   const details =
     movement.complementosTabelados
       ?.map((item) => {
         const label = normalizeComplementLabel(item.descricao || item.nome);
         const value = normalizeComplementValue(item.valor);
 
+        if (label && !value && genericLabels.has(label)) return "";
         if (label && value && label !== value) return `${label}: ${value}`;
         return label || value;
       })

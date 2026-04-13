@@ -59,9 +59,18 @@ export function summarizeText(text: string, maxLength = 180) {
 }
 
 export function humanizeIdentifier(value: string) {
+  const smallWords = new Set(["de", "da", "do", "das", "dos", "e", "em", "para", "por", "com"]);
+
   return value
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .toLocaleLowerCase("pt-BR")
+    .split(" ")
+    .map((word, index) => {
+      if (!word) return word;
+      if (index > 0 && smallWords.has(word)) return word;
+      return `${word.charAt(0).toLocaleUpperCase("pt-BR")}${word.slice(1)}`;
+    })
+    .join(" ");
 }

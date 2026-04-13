@@ -1,13 +1,16 @@
-import type { PropsWithChildren } from "react";
+import type { HTMLAttributes, PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 
-type CardProps = PropsWithChildren<{
+type CardProps = PropsWithChildren<HTMLAttributes<HTMLDivElement> & {
   className?: string;
 }>;
 
-export function Card({ children, className }: CardProps) {
+export function Card({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("rounded-2xl border border-white/70 bg-white p-5 shadow-panel", className)}>
+    <div
+      className={cn("rounded-2xl border border-white/70 bg-white p-5 shadow-panel", className)}
+      {...props}
+    >
       {children}
     </div>
   );

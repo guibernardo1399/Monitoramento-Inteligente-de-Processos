@@ -1,6 +1,7 @@
 import { FileText, Gavel, Sparkles } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { SeverityBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type TimelineItem = {
   id: string;
@@ -9,6 +10,8 @@ type TimelineItem = {
   description: string;
   type: "movement" | "publication" | "alert";
   severity?: string;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
 export function ProcessTimeline({ items }: { items: TimelineItem[] }) {
@@ -36,6 +39,15 @@ export function ProcessTimeline({ items }: { items: TimelineItem[] }) {
                 </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-steel">{item.description}</p>
+              {item.actionHref && item.actionLabel ? (
+                <div className="mt-3">
+                  <a href={item.actionHref}>
+                    <Button variant="secondary" type="button">
+                      {item.actionLabel}
+                    </Button>
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

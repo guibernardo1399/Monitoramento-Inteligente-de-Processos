@@ -48,6 +48,8 @@ export default async function ProcessDetailsPage({
         .join(" • "),
       type: "publication" as const,
       severity: publication.hasDeadlineHint ? "CRITICAL" : "ATTENTION",
+      actionHref: `#publicacao-${publication.id}`,
+      actionLabel: "Ir Para a Publicação",
     })),
     ...process.alerts.map((alert) => ({
       id: alert.id,
@@ -114,6 +116,50 @@ export default async function ProcessDetailsPage({
                   {party.document ? <p className="mt-2 text-sm text-steel">{party.document}</p> : null}
                 </div>
               ))}
+            </div>
+          </Card>
+
+          <Card id="publicacoes-oficiais">
+            <h3 className="text-lg font-semibold text-ink">Publicações Oficiais</h3>
+            <p className="mt-2 text-sm text-slate-700">
+              Histórico das publicações localizadas para este processo, com data de disponibilização, data de publicação e resumo do conteúdo.
+            </p>
+            <div className="mt-4 space-y-3">
+              {process.publications.length === 0 ? (
+                <div className="rounded-2xl border border-line p-4 text-sm text-slate-700">
+                  Nenhuma publicação oficial encontrada até o momento.
+                </div>
+              ) : (
+                process.publications.map((publication) => (
+                  <div
+                    key={publication.id}
+                    id={`publicacao-${publication.id}`}
+                    className="rounded-2xl border border-line p-4"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h4 className="font-semibold text-ink">{publication.title}</h4>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {publication.actType ? `Tipo do Ato: ${publication.actType} • ` : ""}
+                          Publicado em {formatDateTime(publication.publicationDate)}
+                          {publication.availabilityDate
+                            ? ` • Disponibilizado em ${formatDateTime(publication.availabilityDate)}`
+                            : ""}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
+                          {publication.source}
+                          {publication.court ? ` • ${publication.court}` : ""}
+                          {publication.judgingBody ? ` • ${publication.judgingBody}` : ""}
+                        </p>
+                      </div>
+                      <SeverityBadge severity={publication.hasDeadlineHint ? "CRITICAL" : "ATTENTION"} />
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700">
+                      {publication.excerpt || publication.content}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </div>

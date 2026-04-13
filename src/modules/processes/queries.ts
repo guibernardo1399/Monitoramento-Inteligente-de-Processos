@@ -54,6 +54,7 @@ export async function getProcesses(
       subject: true,
       monitoringStatus: true,
       lastEventAt: true,
+      lastSyncedAt: true,
       updatedAt: true,
       client: {
         select: {

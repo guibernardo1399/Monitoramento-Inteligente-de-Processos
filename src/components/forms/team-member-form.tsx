@@ -1,46 +1,32 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import type { TeamMemberActionState } from "@/app/(dashboard)/team/actions";
+import { createTeamMemberAction } from "@/app/(dashboard)/team/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function TeamMemberForm() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const initialState: TeamMemberActionState = {};
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const formData = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(formData.entries());
-
-    const response = await fetch("/api/office-members", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setError(body?.error || "Nao foi possivel criar o membro.");
-      setLoading(false);
-      return;
-    }
-
-    event.currentTarget.reset();
-    router.refresh();
-    setLoading(false);
-  }
+function SubmitButton() {
+  const { pending } = useFormStatus();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-line bg-mist/60 p-4">
-      <fieldset disabled={loading} className="space-y-4">
+    <Button type="submit" fullWidth disabled={pending}>
+      {pending ? "Criando Membro..." : "Criar Membro"}
+    </Button>
+  );
+}
+
+export function TeamMemberForm() {
+  const [state, formAction] = useActionState(createTeamMemberAction, initialState);
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-2xl border border-line bg-mist/60 p-4">
+      <fieldset className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-ink">Nome do membro</label>
+          <label className="text-sm font-medium text-ink">Nome do Membro</label>
           <Input name="name" placeholder="Ex.: Juliana Alves" required />
         </div>
         <div className="space-y-2">
@@ -48,14 +34,12 @@ export function TeamMemberForm() {
           <Input name="email" type="email" placeholder="juliana@escritorio.com" required />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-ink">Senha inicial</label>
+          <label className="text-sm font-medium text-ink">Senha Inicial</label>
           <Input name="password" type="password" placeholder="Minimo de 6 caracteres" required />
         </div>
       </fieldset>
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      <Button type="submit" fullWidth disabled={loading}>
-        {loading ? "Criando membro..." : "Criar membro"}
-      </Button>
+      {state.error ? <p className="text-sm text-rose-600">{state.error}</p> : null}
+      <SubmitButton />
     </form>
   );
 }

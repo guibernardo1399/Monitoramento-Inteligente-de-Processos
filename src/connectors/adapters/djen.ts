@@ -3,6 +3,7 @@ import type { ExternalPublication, PublicationConnector, PublicationSearchFilter
 import { mockProcessSnapshots } from "@/connectors/mocks/mock-data";
 import { fetchJson } from "@/connectors/utils/http";
 import { normalizeCnjNumber } from "@/connectors/utils/tribunal-alias";
+import { normalizeExternalDateInput } from "@/lib/utils";
 
 type DjenApiItem = {
   id?: string | number;
@@ -76,8 +77,10 @@ function normalizePublication(item: DjenApiItem, filters: PublicationSearchFilte
     externalId: item.id?.toString() || item.codigo?.toString() || undefined,
     externalReference,
     cnjNumber,
-    publicationDate: item.dataPublicacao || item.dataDisponibilizacao || new Date().toISOString(),
-    availabilityDate: item.dataDisponibilizacao || undefined,
+    publicationDate:
+      normalizeExternalDateInput(item.dataPublicacao || item.dataDisponibilizacao) ||
+      new Date().toISOString(),
+    availabilityDate: normalizeExternalDateInput(item.dataDisponibilizacao) || undefined,
     actType,
     source: "DJEN",
     court: item.siglaTribunal || item.tribunal || filters.court || undefined,

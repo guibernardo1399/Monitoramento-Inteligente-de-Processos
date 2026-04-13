@@ -52,6 +52,24 @@ export function formatDate(value: Date | string) {
   }).format(date);
 }
 
+export function normalizeExternalDateInput(value?: string | null) {
+  if (!value) return null;
+
+  const normalized = value.trim();
+
+  if (!normalized) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return `${normalized}T00:00:00-03:00`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/.test(normalized)) {
+    return `${normalized}-03:00`;
+  }
+
+  return normalized;
+}
+
 export function summarizeText(text: string, maxLength = 180) {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) return normalized;

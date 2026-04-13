@@ -3,7 +3,7 @@ import type { ProcessDataConnector } from "@/connectors/types";
 import { mockProcessSnapshots } from "@/connectors/mocks/mock-data";
 import { fetchJson } from "@/connectors/utils/http";
 import { normalizeCnjNumber, resolveDatajudAlias } from "@/connectors/utils/tribunal-alias";
-import { humanizeIdentifier, humanizeSentence } from "@/lib/utils";
+import { humanizeIdentifier, humanizeSentence, normalizeExternalDateInput } from "@/lib/utils";
 
 const OFFICIAL_PUBLIC_DATAJUD_API_KEY =
   "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
@@ -148,7 +148,7 @@ export class DatajudConnector implements ProcessDataConnector {
       movements:
         source.movimentos?.map((movement) => ({
           externalId: movement.codigo ? String(movement.codigo) : undefined,
-          date: movement.dataHora || new Date().toISOString(),
+          date: normalizeExternalDateInput(movement.dataHora) || new Date().toISOString(),
           title: humanizeIdentifier(movement.nome || "Movimentação"),
           description: buildMovementDescription(movement),
           code: movement.codigo ? String(movement.codigo) : undefined,

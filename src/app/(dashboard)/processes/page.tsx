@@ -85,14 +85,15 @@ export default async function ProcessesPage({
                 <th className="px-5 py-3 font-medium">Processo</th>
                 <th className="px-5 py-3 font-medium">Cliente</th>
                 <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Ultima atualizacao</th>
+                <th className="px-5 py-3 font-medium">Última Atualização</th>
+                <th className="px-5 py-3 font-medium">Última Sincronização</th>
                 <th className="px-5 py-3 font-medium">Alertas</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line bg-white">
               {processes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-steel">
+                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-steel">
                     Nenhum processo encontrado para este filtro.
                   </td>
                 </tr>
@@ -121,6 +122,9 @@ export default async function ProcessesPage({
                     </td>
                     <td className="px-5 py-4 text-steel">
                       {process.lastEventAt ? formatDateTime(process.lastEventAt) : "Sem eventos"}
+                    </td>
+                    <td className="px-5 py-4 text-steel">
+                      {process.lastSyncedAt ? formatDateTime(process.lastSyncedAt) : "Nunca sincronizado"}
                     </td>
                     <td className="px-5 py-4">
                       {critical ? (

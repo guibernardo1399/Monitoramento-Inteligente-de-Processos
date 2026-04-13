@@ -139,6 +139,7 @@ export async function getProcessDetails(
           movementDate: true,
           title: true,
           description: true,
+          rawPayload: true,
         },
       },
       publications: {
@@ -156,6 +157,7 @@ export async function getProcessDetails(
           content: true,
           hasDeadlineHint: true,
           source: true,
+          rawPayload: true,
         },
       },
       alerts: {
@@ -172,7 +174,7 @@ export async function getProcessDetails(
       },
       syncLogs: {
         orderBy: { startedAt: "desc" },
-        take: 20,
+        take: 1,
         select: {
           id: true,
           source: true,

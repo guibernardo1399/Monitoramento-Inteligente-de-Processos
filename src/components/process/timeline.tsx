@@ -1,7 +1,6 @@
 import { FileText, Gavel, Sparkles } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { SeverityBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 type TimelineItem = {
   id: string;
@@ -10,11 +9,22 @@ type TimelineItem = {
   description: string;
   type: "movement" | "publication" | "alert";
   severity?: string;
-  actionHref?: string;
-  actionLabel?: string;
+  sourceUrl?: string | null;
 };
 
 export function ProcessTimeline({ items }: { items: TimelineItem[] }) {
+  function buildEventLabel(item: TimelineItem) {
+    if (item.type === "publication") {
+      return `Publicada em ${formatDateTime(item.date)}`;
+    }
+
+    if (item.type === "alert") {
+      return `Gerado em ${formatDateTime(item.date)}`;
+    }
+
+    return `Registrada em ${formatDateTime(item.date)}`;
+  }
+
   return (
     <div className="space-y-4">
       {items.map((item) => (
@@ -38,13 +48,17 @@ export function ProcessTimeline({ items }: { items: TimelineItem[] }) {
                   <span className="text-xs text-steel">{formatDateTime(item.date)}</span>
                 </div>
               </div>
+              <p className="mt-2 text-sm font-medium text-slate-700">{buildEventLabel(item)}</p>
               <p className="mt-2 text-sm leading-6 text-steel">{item.description}</p>
-              {item.actionHref && item.actionLabel ? (
+              {item.sourceUrl ? (
                 <div className="mt-3">
-                  <a href={item.actionHref}>
-                    <Button variant="secondary" type="button">
-                      {item.actionLabel}
-                    </Button>
+                  <a
+                    href={item.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-brand ring-1 ring-line transition hover:bg-slate-50"
+                  >
+                    Abrir Documento Oficial
                   </a>
                 </div>
               ) : null}

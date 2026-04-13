@@ -25,6 +25,25 @@ function summarizeSyncWarning(message: string) {
   return summarizeText(message, 140);
 }
 
+function buildMovementAlertMessage(input: {
+  title: string;
+  description: string;
+  severity: ReturnType<typeof classifyMovement>;
+}) {
+  const normalizedDescription = input.description.trim();
+  const hasLowContextDescription =
+    !normalizedDescription ||
+    /^(tipo de documento|tipo de petição|tipo de movimentação|movimentação processual)\.?$/i.test(
+      normalizedDescription,
+    );
+
+  const baseMessage = hasLowContextDescription
+    ? `${input.title} registrada no processo.`
+    : ensureSentence(summarizeText(normalizedDescription, 160));
+
+  return `${baseMessage} ${humanReviewLabel(input.severity)}.`;
+}
+
 export async function syncProcess(
   processId: string,
   officeId: string,
@@ -193,7 +212,11 @@ export async function syncProcess(
             officeId,
             processId,
             title: `Nova Movimentação: ${movement.title}`,
-            message: `${ensureSentence(summarizeText(movement.description, 160))} ${humanReviewLabel(severity)}.`,
+            message: buildMovementAlertMessage({
+              title: movement.title,
+              description: movement.description,
+              severity,
+            }),
             severity,
           });
         }),

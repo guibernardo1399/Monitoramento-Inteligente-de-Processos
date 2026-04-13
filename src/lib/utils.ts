@@ -78,11 +78,24 @@ export function humanizeIdentifier(value: string) {
     "aos",
   ]);
 
-  return value
+  const normalized = value
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .toLocaleLowerCase("pt-BR")
+    .toLocaleLowerCase("pt-BR");
+
+  const corrected = normalized
+    .replace(/\bmovimentacao\b/g, "movimentação")
+    .replace(/\bdistribuicao\b/g, "distribuição")
+    .replace(/\bexpedicao\b/g, "expedição")
+    .replace(/\bpeticao\b/g, "petição")
+    .replace(/\binclusao\b/g, "inclusão")
+    .replace(/\bjuizo\b/g, "juízo")
+    .replace(/\bprovisorio\b/g, "provisório")
+    .replace(/\borgao\b/g, "órgão")
+    .replace(/\bpublicacao\b/g, "publicação");
+
+  return corrected
     .split(" ")
     .map((word, index) => {
       if (!word) return word;
@@ -95,11 +108,66 @@ export function humanizeIdentifier(value: string) {
 export function humanizeSentence(value: string) {
   const titleized = humanizeIdentifier(value);
   if (!titleized) return titleized;
-  return `${titleized.charAt(0).toUpperCase()}${titleized.slice(1)}`;
+  return `${titleized.charAt(0).toLocaleUpperCase("pt-BR")}${titleized.slice(1)}`;
 }
 
 export function ensureSentence(value: string) {
   const normalized = value.trim();
   if (!normalized) return normalized;
   return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
+}
+
+function safeJsonParse<T>(value: string | null | undefined): T | null {
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function findPublicUrl(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+
+  const candidateKeys = [
+    "url",
+    "link",
+    "href",
+    "uri",
+    "documentoUrl",
+    "pdfUrl",
+    "visualizacaoUrl",
+    "consultaUrl",
+    "endereco",
+  ];
+
+  for (const key of candidateKeys) {
+    const value = (input as Record<string, unknown>)[key];
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(input as Record<string, unknown>)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const nestedUrl = findPublicUrl(item);
+        if (nestedUrl) return nestedUrl;
+      }
+      continue;
+    }
+
+    if (value && typeof value === "object") {
+      const nestedUrl = findPublicUrl(value);
+      if (nestedUrl) return nestedUrl;
+    }
+  }
+
+  return null;
+}
+
+export function extractPublicSourceUrl(rawPayload?: string | null) {
+  const parsed = safeJsonParse<unknown>(rawPayload);
+  return findPublicUrl(parsed);
 }

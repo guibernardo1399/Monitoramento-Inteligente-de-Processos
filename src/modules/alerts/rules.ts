@@ -14,5 +14,5 @@ export function classifyPublication(publication: ExternalPublication): AlertSeve
 export function humanReviewLabel(severity: AlertSeverity) {
   if (severity === "CRITICAL") return "Revisão humana imediata recomendada";
   if (severity === "ATTENTION") return "Revisão humana recomendada";
-  return "Acompanhar na rotina do escritório";
+  return "Verifique a atualização no processo";
 }

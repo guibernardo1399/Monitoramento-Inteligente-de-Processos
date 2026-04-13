@@ -15,13 +15,17 @@ export function StatCard({
   href?: string;
 }) {
   const content = (
-    <Card className="bg-white/90">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-steel">{label}</p>
+    <Card className="h-full bg-white/90">
+      <div className="flex min-h-[180px] items-start justify-between gap-4">
+        <div className="flex min-h-[180px] flex-1 flex-col">
+          <p className="min-h-[56px] text-sm leading-7 text-steel">{label}</p>
           <h3 className="mt-2 text-3xl font-semibold text-ink">{value}</h3>
           <p className="mt-2 text-sm text-steel">{hint}</p>
-          {href ? <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand">Clique para abrir</p> : null}
+          {href ? (
+            <p className="mt-auto pt-4 text-xs font-semibold uppercase tracking-[0.16em] text-brand">
+              Clique Para Abrir
+            </p>
+          ) : null}
         </div>
         <div className="rounded-2xl bg-brand-50 p-3 text-brand">{icon}</div>
       </div>

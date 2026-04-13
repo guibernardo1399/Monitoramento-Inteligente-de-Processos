@@ -28,13 +28,19 @@ export function SyncButton({ processId }: { processId: string }) {
       ? new Intl.DateTimeFormat("pt-BR", {
           dateStyle: "short",
           timeStyle: "short",
+          timeZone: "America/Sao_Paulo",
         }).format(new Date(body.syncedAt))
       : null;
 
+    const baseMessage =
+      body?.status === "PARTIAL"
+        ? "Sincronização parcial. Tente novamente mais tarde para completar as publicações."
+        : body?.message || "Sincronização concluída.";
+
     setSuccess(
       syncedAtLabel
-        ? `${body?.message || "Sincronizacao concluida."} Ultima sincronizacao registrada em ${syncedAtLabel}.`
-        : body?.message || "Sincronizacao concluida.",
+        ? `${baseMessage} Última sincronização: ${syncedAtLabel}.`
+        : baseMessage,
     );
     router.refresh();
     setLoading(false);
@@ -43,7 +49,7 @@ export function SyncButton({ processId }: { processId: string }) {
   return (
     <div className="space-y-2">
       <Button onClick={handleClick} disabled={loading}>
-        {loading ? "Sincronizando..." : "Sincronizar agora"}
+        {loading ? "Sincronizando..." : "Sincronizar Agora"}
       </Button>
       {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}

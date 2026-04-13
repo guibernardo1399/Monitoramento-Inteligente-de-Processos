@@ -40,6 +40,7 @@ export function formatDateTime(value: Date | string) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(date);
 }
 
@@ -47,5 +48,12 @@ export function formatDate(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
+    timeZone: "America/Sao_Paulo",
   }).format(date);
+}
+
+export function summarizeText(text: string, maxLength = 180) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
 }

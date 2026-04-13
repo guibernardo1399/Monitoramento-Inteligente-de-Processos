@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, summarizeText } from "@/lib/utils";
 import { severityConfig } from "@/lib/constants";
 
 type ReportProcess = {
@@ -22,7 +22,9 @@ type ReportProcess = {
   }>;
   publications: Array<{
     publicationDate: Date;
+    availabilityDate?: Date | null;
     title: string;
+    excerpt?: string | null;
     content: string;
     source: string;
     hasDeadlineHint: boolean;
@@ -185,7 +187,10 @@ export async function generateProcessPdfReport(process: ReportProcess) {
         `${formatDateTime(publication.publicationDate)} • ${publication.source} • ${publication.title}${publication.hasDeadlineHint ? " • Potencial prazo" : ""}`,
         { bold: true },
       );
-      drawParagraph(publication.content);
+      if (publication.availabilityDate) {
+        drawParagraph(`Disponibilização: ${formatDateTime(publication.availabilityDate)}`);
+      }
+      drawParagraph(summarizeText(publication.excerpt || publication.content, 280));
     }
   }
 

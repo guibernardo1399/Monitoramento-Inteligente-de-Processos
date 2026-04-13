@@ -147,7 +147,12 @@ export async function getProcessDetails(
         select: {
           id: true,
           publicationDate: true,
+          availabilityDate: true,
           title: true,
+          actType: true,
+          court: true,
+          judgingBody: true,
+          excerpt: true,
           content: true,
           hasDeadlineHint: true,
           source: true,

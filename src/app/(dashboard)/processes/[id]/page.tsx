@@ -6,7 +6,7 @@ import { SyncButton } from "@/components/process/sync-button";
 import { ProcessTimeline } from "@/components/process/timeline";
 import { AlertStatusBadge, SeverityBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, summarizeText } from "@/lib/utils";
 import { getProcessDetails } from "@/modules/processes/queries";
 import { requireUser } from "@/server/auth/session";
 
@@ -36,7 +36,16 @@ export default async function ProcessDetailsPage({
       id: publication.id,
       date: publication.publicationDate,
       title: publication.title,
-      description: publication.content,
+      description: [
+        publication.availabilityDate
+          ? `Disponibilização: ${formatDateTime(publication.availabilityDate)}`
+          : null,
+        `Publicação: ${formatDateTime(publication.publicationDate)}`,
+        publication.actType ? `Tipo: ${publication.actType}` : null,
+        summarizeText(publication.excerpt || publication.content, 180),
+      ]
+        .filter(Boolean)
+        .join(" • "),
       type: "publication" as const,
       severity: publication.hasDeadlineHint ? "CRITICAL" : "ATTENTION",
     })),
@@ -62,15 +71,15 @@ export default async function ProcessDetailsPage({
           <div>
             <p className="text-sm uppercase tracking-[0.16em] text-brand">{process.court}</p>
             <h2 className="mt-2 text-2xl font-semibold text-ink">{process.cnjNumber}</h2>
-            <p className="mt-2 text-sm leading-6 text-steel">
+            <p className="mt-2 text-sm leading-6 text-slate-700">
               {process.className} • {process.subject} • {process.judgingBody}
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-steel">
+            <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-800">
               <span>Cliente: {process.client.name}</span>
-              <span>Advogado: {process.lawyerName || "Nao informado"}</span>
-              <span>OAB: {process.lawyerOab || "Nao informada"}</span>
-              <span>Responsavel: {process.internalResponsible?.name || "Nao definido"}</span>
-              <span>Ultima sincronizacao: {process.lastSyncedAt ? formatDateTime(process.lastSyncedAt) : "Nunca"}</span>
+              <span>Advogado: {process.lawyerName || "Não informado"}</span>
+              <span>OAB: {process.lawyerOab || "Não informada"}</span>
+              <span>Responsável: {process.internalResponsible?.name || "Não definido"}</span>
+              <span>Última Sincronização: {process.lastSyncedAt ? formatDateTime(process.lastSyncedAt) : "Nunca"}</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -84,9 +93,9 @@ export default async function ProcessDetailsPage({
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <Card>
-            <h3 className="text-lg font-semibold text-ink">Timeline do processo</h3>
-            <p className="mt-2 text-sm text-steel">
-              Movimentacoes, publicacoes e alertas organizados em ordem cronologica para a rotina do escritorio.
+            <h3 className="text-lg font-semibold text-ink">Timeline do Processo</h3>
+            <p className="mt-2 text-sm text-slate-700">
+              Movimentações, publicações e alertas organizados em ordem cronológica para a rotina do escritório.
             </p>
             <div className="mt-5">
               <ProcessTimeline items={timeline} />
@@ -94,7 +103,7 @@ export default async function ProcessDetailsPage({
           </Card>
 
           <Card>
-            <h3 className="text-lg font-semibold text-ink">Partes envolvidas</h3>
+            <h3 className="text-lg font-semibold text-ink">Partes Envolvidas</h3>
             <div className="mt-4 space-y-3">
               {process.parties.map((party) => (
                 <div key={party.id} className="rounded-2xl border border-line p-4">
@@ -111,7 +120,7 @@ export default async function ProcessDetailsPage({
 
         <div className="space-y-4">
           <Card>
-            <h3 className="text-lg font-semibold text-ink">Alertas gerados</h3>
+            <h3 className="text-lg font-semibold text-ink">Alertas Gerados</h3>
             <div className="mt-4 space-y-3">
               {process.alerts.map((alert) => (
                 <div key={alert.id} className="rounded-2xl border border-line p-4">
@@ -131,7 +140,7 @@ export default async function ProcessDetailsPage({
           </Card>
 
           <Card>
-            <h3 className="text-lg font-semibold text-ink">Logs de sincronizacao</h3>
+            <h3 className="text-lg font-semibold text-ink">Logs de Sincronização</h3>
             <div className="mt-4 space-y-3">
               {process.syncLogs.map((log) => (
                 <div key={log.id} className="rounded-2xl border border-line p-4 text-sm">
@@ -139,23 +148,23 @@ export default async function ProcessDetailsPage({
                     <span className="font-semibold text-ink">{log.source}</span>
                     <span className="text-steel">{log.status}</span>
                   </div>
-                  <p className="mt-2 text-steel">
-                    Inicio: {formatDateTime(log.startedAt)} • Fim: {log.finishedAt ? formatDateTime(log.finishedAt) : "em andamento"}
+                  <p className="mt-2 text-slate-700">
+                    Início: {formatDateTime(log.startedAt)} • Fim: {log.finishedAt ? formatDateTime(log.finishedAt) : "em andamento"}
                   </p>
                   {log.errorMessage ? <p className="mt-2 text-rose-600">{log.errorMessage}</p> : null}
-                  {log.externalReference ? <p className="mt-2 text-steel">Referencia externa: {log.externalReference}</p> : null}
+                  {log.externalReference ? <p className="mt-2 text-slate-700">Referência Externa: {log.externalReference}</p> : null}
                 </div>
               ))}
             </div>
           </Card>
 
           <Card>
-            <h3 className="text-lg font-semibold text-ink">Observacoes internas</h3>
-            <p className="mt-3 text-sm leading-6 text-steel">{process.notes || "Nenhuma observacao registrada."}</p>
+            <h3 className="text-lg font-semibold text-ink">Observações Internas</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{process.notes || "Nenhuma observação registrada."}</p>
             <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
-              Alertas com potencial prazo sao apenas sugestoes operacionais. A validacao final deve ser feita por revisao humana.
+              Alertas com potencial prazo são apenas sugestões operacionais. A validação final deve ser feita por revisão humana.
             </p>
-            <p className="mt-4 text-xs text-steel">Criado em {formatDate(process.createdAt)}</p>
+            <p className="mt-4 text-xs text-slate-700">Criado em {formatDate(process.createdAt)}</p>
           </Card>
         </div>
       </section>

@@ -8,9 +8,11 @@ export const env = {
   datajudUsePublicKeyFallback: process.env.DATAJUD_USE_PUBLIC_KEY_FALLBACK !== "false",
   datajudTribunalAlias: process.env.DATAJUD_TRIBUNAL_ALIAS || "",
   datajudTimeoutMs: Number(process.env.DATAJUD_TIMEOUT_MS || "15000"),
-  djenBaseUrl: process.env.DJEN_BASE_URL || "",
+  djenBaseUrl: process.env.DJEN_BASE_URL || "https://comunicaapi.pje.jus.br",
   djenApiKey: process.env.DJEN_API_KEY || "",
-  djenApiPath: process.env.DJEN_API_PATH || "",
+  djenApiPath: process.env.DJEN_API_PATH || "/api/v1/comunicacao",
   djenTimeoutMs: Number(process.env.DJEN_TIMEOUT_MS || "15000"),
+  djenInitialLookbackDays: Number(process.env.DJEN_INITIAL_LOOKBACK_DAYS || "180"),
+  djenIncrementalLookbackDays: Number(process.env.DJEN_INCREMENTAL_LOOKBACK_DAYS || "15"),
   useMockConnectors: process.env.USE_MOCK_CONNECTORS !== "false",
 };

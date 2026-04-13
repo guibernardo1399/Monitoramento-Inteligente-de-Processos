@@ -9,12 +9,31 @@ export type ExternalMovement = {
 
 export type ExternalPublication = {
   externalId?: string;
-  date: string;
+  externalReference?: string;
+  cnjNumber: string;
+  publicationDate: string;
+  availabilityDate?: string;
+  actType?: string;
   source: string;
+  court?: string;
+  judgingBody?: string;
   title: string;
+  excerpt?: string;
   content: string;
   hasDeadlineHint?: boolean;
   rawPayload?: unknown;
+};
+
+export type PublicationSearchFilters = {
+  cnjNumber: string;
+  court?: string | null;
+  judgingBody?: string | null;
+  lawyerName?: string | null;
+  lawyerOab?: string | null;
+  publicationDateFrom?: string;
+  publicationDateTo?: string;
+  availabilityDateFrom?: string;
+  availabilityDateTo?: string;
 };
 
 export type ExternalProcessSnapshot = {
@@ -42,5 +61,5 @@ export interface ProcessDataConnector {
 export interface PublicationConnector {
   key: string;
   supportsLiveData: boolean;
-  fetchPublicationsByCNJ(cnjNumber: string): Promise<ExternalPublication[]>;
+  fetchPublications(filters: PublicationSearchFilters): Promise<ExternalPublication[]>;
 }

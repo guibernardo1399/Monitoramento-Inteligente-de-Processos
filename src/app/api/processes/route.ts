@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       });
     }
 
-    await syncProcess(process.id, user.officeId);
+    await syncProcess(process.id, user.officeId, { publicationMode: "initial" });
 
     return NextResponse.json({ id: process.id });
   } catch (error) {

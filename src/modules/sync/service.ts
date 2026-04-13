@@ -1,10 +1,15 @@
 import type { Prisma } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/server/db/prisma";
-import { datajudConnector, djenConnector } from "@/connectors";
-import { classifyMovement, classifyPublication, humanReviewLabel } from "@/modules/alerts/rules";
+import { datajudConnector } from "@/connectors";
+import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
+import { syncProcessPublications } from "@/modules/publications/sync-service";
 
-export async function syncProcess(processId: string, officeId: string) {
+export async function syncProcess(
+  processId: string,
+  officeId: string,
+  options?: { publicationMode?: "initial" | "incremental" },
+) {
   const process = await prisma.process.findFirst({
     where: { id: processId, officeId },
     include: { client: true },
@@ -17,34 +22,67 @@ export async function syncProcess(processId: string, officeId: string) {
   const syncStart = new Date();
   const syncSource = env.useMockConnectors ? "MOCK" : "DATAJUD";
   const snapshot = await datajudConnector.fetchProcessByCNJ(process.cnjNumber);
-  const publications = await djenConnector.fetchPublicationsByCNJ(process.cnjNumber);
+  const publicationSync = await syncProcessPublications({
+    processId,
+    officeId,
+    cnjNumber: process.cnjNumber,
+    court: process.court,
+    judgingBody: process.judgingBody,
+    lawyerName: process.lawyerName,
+    lawyerOab: process.lawyerOab,
+    mode: options?.publicationMode || "incremental",
+  });
 
   if (!snapshot) {
-    await prisma.syncLog.create({
-      data: {
-        officeId,
-        processId,
-        source: syncSource,
-        startedAt: syncStart,
-        finishedAt: new Date(),
-        status: "FAILED",
-        errorMessage: "Nenhum dado retornado pelo conector configurado.",
-      },
+    const syncedAt = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.process.update({
+        where: { id: processId },
+        data: {
+          lastSyncedAt: syncedAt,
+          lastEventAt: publicationSync.latestPublicationDate || process.lastEventAt || syncedAt,
+        },
+      });
+
+      await tx.syncLog.create({
+        data: {
+          officeId,
+          processId,
+          source: syncSource,
+          startedAt: syncStart,
+          finishedAt: syncedAt,
+          status: publicationSync.newPublications > 0 ? "PARTIAL" : "FAILED",
+          errorMessage:
+            publicationSync.newPublications > 0
+              ? "Dados processuais indisponiveis no momento, mas publicacoes oficiais foram sincronizadas."
+              : "Nenhum dado retornado pelo conector configurado.",
+          rawPayload: JSON.stringify({
+            snapshot,
+            publications: publicationSync.fetchedPublications,
+          }),
+        },
+      });
     });
-    return { newMovements: 0, newPublications: 0 };
+
+    return {
+      newMovements: 0,
+      newPublications: publicationSync.newPublications,
+      status: publicationSync.newPublications > 0 ? ("PARTIAL" as const) : ("FAILED" as const),
+      syncedAt: publicationSync.newPublications > 0 ? syncedAt.toISOString() : null,
+      message:
+        publicationSync.newPublications > 0
+          ? options?.publicationMode === "initial"
+            ? `Carga historica inicial concluida com ${publicationSync.newPublications} publicacao(oes) oficiais recuperadas do DJEN.`
+            : `Sincronizacao parcial concluida com ${publicationSync.newPublications} nova(s) publicacao(oes) oficiais do DJEN.`
+          : "A sincronizacao foi executada, mas nao encontramos dados atualizados para esse processo.",
+    };
   }
 
   const movementCreates: Prisma.ProcessMovementCreateManyInput[] = [];
-  const publicationCreates: Prisma.ProcessPublicationCreateManyInput[] = [];
-
   const existingMovements = await prisma.processMovement.findMany({
     where: { processId },
     select: { title: true, movementDate: true },
-  });
-
-  const existingPublications = await prisma.processPublication.findMany({
-    where: { processId },
-    select: { title: true, publicationDate: true, source: true },
   });
 
   for (const movement of snapshot.movements) {
@@ -67,34 +105,11 @@ export async function syncProcess(processId: string, officeId: string) {
     }
   }
 
-  for (const publication of publications) {
-    const alreadyExists = existingPublications.some(
-      (item) =>
-        item.title === publication.title &&
-        item.source === publication.source &&
-        item.publicationDate.getTime() === new Date(publication.date).getTime(),
-    );
-
-    if (!alreadyExists) {
-      publicationCreates.push({
-        processId,
-        externalId: publication.externalId,
-        publicationDate: new Date(publication.date),
-        source: publication.source,
-        title: publication.title,
-        content: publication.content,
-        hasDeadlineHint: Boolean(publication.hasDeadlineHint),
-        rawPayload: publication.rawPayload ? JSON.stringify(publication.rawPayload) : null,
-      });
-    }
-  }
-
   const latestMovementDate = movementCreates
     .map((item) => new Date(item.movementDate))
     .sort((a, b) => b.getTime() - a.getTime())[0];
-  const latestPublicationDate = publicationCreates
-    .map((item) => new Date(item.publicationDate))
-    .sort((a, b) => b.getTime() - a.getTime())[0];
+
+  const syncedAt = new Date();
 
   await prisma.$transaction(async (tx) => {
     await tx.process.update({
@@ -105,8 +120,8 @@ export async function syncProcess(processId: string, officeId: string) {
         subject: snapshot.subject,
         judgingBody: snapshot.judgingBody,
         externalReference: snapshot.externalReference,
-        lastSyncedAt: new Date(),
-        lastEventAt: latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
+        lastSyncedAt: syncedAt,
+        lastEventAt: publicationSync.latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
       },
     });
 
@@ -136,44 +151,18 @@ export async function syncProcess(processId: string, officeId: string) {
       }
     }
 
-    if (publicationCreates.length > 0) {
-      await tx.processPublication.createMany({
-        data: publicationCreates,
-      });
-
-      for (const publication of publicationCreates) {
-        const severity = classifyPublication({
-          date: new Date(publication.publicationDate).toISOString(),
-          source: publication.source,
-          title: publication.title,
-          content: publication.content,
-          hasDeadlineHint: publication.hasDeadlineHint,
-        });
-
-        await tx.alert.create({
-          data: {
-            officeId,
-            processId,
-            title: `Nova publicacao: ${publication.title}`,
-            message: `${publication.content}. ${humanReviewLabel(severity)}.`,
-            severity,
-            requiresHumanReview: true,
-          },
-        });
-      }
-    }
-
     await tx.syncLog.create({
       data: {
         officeId,
         processId,
         source: syncSource,
         startedAt: syncStart,
-        finishedAt: new Date(),
-        status: publicationCreates.length > 0 || movementCreates.length > 0 ? "SUCCESS" : "PARTIAL",
+        finishedAt: syncedAt,
+        status:
+          publicationSync.newPublications > 0 || movementCreates.length > 0 ? "SUCCESS" : "PARTIAL",
         rawPayload: JSON.stringify({
           snapshot,
-          publications,
+          publications: publicationSync.fetchedPublications,
         }),
         externalReference: snapshot.externalReference,
       },
@@ -182,6 +171,14 @@ export async function syncProcess(processId: string, officeId: string) {
 
   return {
     newMovements: movementCreates.length,
-    newPublications: publicationCreates.length,
+    newPublications: publicationSync.newPublications,
+    status: publicationSync.newPublications > 0 || movementCreates.length > 0 ? "SUCCESS" : "PARTIAL",
+    syncedAt: syncedAt.toISOString(),
+    message:
+      movementCreates.length > 0 || publicationSync.newPublications > 0
+        ? options?.publicationMode === "initial"
+          ? `Cadastro concluido com carga historica inicial: ${movementCreates.length} movimentacao(oes) e ${publicationSync.newPublications} publicacao(oes) registradas para este processo.`
+          : `Sincronizacao concluida com ${movementCreates.length} nova(s) movimentacao(oes) e ${publicationSync.newPublications} nova(s) publicacao(oes).`
+        : "Sincronizacao concluida. Nenhuma nova movimentacao ou publicacao foi encontrada.",
   };
 }

@@ -36,9 +36,16 @@ export const mockProcessSnapshots: Record<string, ExternalProcessSnapshot> = {
     publications: [
       {
         externalId: "pub-1",
-        date: subHours(new Date(), 6).toISOString(),
+        externalReference: "DJEN-pub-1",
+        cnjNumber: "5001682-64.2024.8.26.0100",
+        publicationDate: subHours(new Date(), 6).toISOString(),
+        availabilityDate: subHours(new Date(), 10).toISOString(),
+        actType: "Intimacao",
         source: "DJEN",
+        court: "TJSP",
+        judgingBody: "12a Vara Civel Central",
         title: "Intimacao para manifestacao",
+        excerpt: "Fica a parte autora intimada para se manifestar sobre a contestacao apresentada.",
         content:
           "Fica a parte autora intimada para se manifestar sobre a contestacao apresentada, em atencao ao despacho de fls.",
         hasDeadlineHint: true,

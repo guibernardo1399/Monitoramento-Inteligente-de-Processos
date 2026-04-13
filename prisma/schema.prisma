@@ -128,20 +128,30 @@ model ProcessMovement {
 }
 
 model ProcessPublication {
-  id              String   @id @default(cuid())
-  processId       String
-  externalId      String?
-  publicationDate DateTime
-  source          String
-  title           String
-  content         String
-  hasDeadlineHint Boolean  @default(false)
-  rawPayload      String?
-  createdAt       DateTime @default(now())
-  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  processId           String
+  externalId          String?
+  externalReference   String?
+  fingerprintHash     String?
+  cnjNumber           String?
+  publicationDate     DateTime
+  availabilityDate    DateTime?
+  actType             String?
+  source              String
+  court               String?
+  judgingBody         String?
+  title               String
+  excerpt             String?
+  content             String
+  hasDeadlineHint     Boolean  @default(false)
+  rawPayload          String?
+  createdAt           DateTime @default(now())
+  process             Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
 
-  @@unique([processId, source, publicationDate, title])
+  @@unique([processId, fingerprintHash])
   @@index([processId, publicationDate])
+  @@index([processId, externalReference])
+  @@index([processId, availabilityDate])
 }
 
 model Alert {

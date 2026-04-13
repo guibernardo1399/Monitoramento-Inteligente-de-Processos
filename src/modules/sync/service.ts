@@ -107,19 +107,21 @@ export async function syncProcess(
     where: { processId },
     select: { title: true, movementDate: true },
   });
+  const existingMovementKeys = new Set(
+    existingMovements.map((item) => `${item.title}::${item.movementDate.getTime()}`),
+  );
 
   for (const movement of snapshot.movements) {
-    const alreadyExists = existingMovements.some(
-      (item) =>
-        item.title === movement.title &&
-        item.movementDate.getTime() === new Date(movement.date).getTime(),
-    );
+    const movementDate = new Date(movement.date);
+    const movementKey = `${movement.title}::${movementDate.getTime()}`;
+    const alreadyExists = existingMovementKeys.has(movementKey);
 
     if (!alreadyExists) {
+      existingMovementKeys.add(movementKey);
       movementCreates.push({
         processId,
         externalId: movement.externalId,
-        movementDate: new Date(movement.date),
+        movementDate,
         title: movement.title,
         description: movement.description,
         code: movement.code,

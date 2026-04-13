@@ -59,7 +59,24 @@ export function summarizeText(text: string, maxLength = 180) {
 }
 
 export function humanizeIdentifier(value: string) {
-  const smallWords = new Set(["de", "da", "do", "das", "dos", "e", "em", "para", "por", "com"]);
+  const smallWords = new Set([
+    "de",
+    "da",
+    "do",
+    "das",
+    "dos",
+    "e",
+    "em",
+    "para",
+    "por",
+    "com",
+    "na",
+    "no",
+    "nas",
+    "nos",
+    "ao",
+    "aos",
+  ]);
 
   return value
     .replace(/[_-]+/g, " ")
@@ -73,4 +90,10 @@ export function humanizeIdentifier(value: string) {
       return `${word.charAt(0).toLocaleUpperCase("pt-BR")}${word.slice(1)}`;
     })
     .join(" ");
+}
+
+export function humanizeSentence(value: string) {
+  const titleized = humanizeIdentifier(value);
+  if (!titleized) return titleized;
+  return `${titleized.charAt(0).toUpperCase()}${titleized.slice(1)}`;
 }

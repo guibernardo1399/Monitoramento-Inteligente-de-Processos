@@ -3,7 +3,7 @@ import type { ProcessDataConnector } from "@/connectors/types";
 import { mockProcessSnapshots } from "@/connectors/mocks/mock-data";
 import { fetchJson } from "@/connectors/utils/http";
 import { normalizeCnjNumber, resolveDatajudAlias } from "@/connectors/utils/tribunal-alias";
-import { humanizeIdentifier } from "@/lib/utils";
+import { humanizeIdentifier, humanizeSentence } from "@/lib/utils";
 
 const OFFICIAL_PUBLIC_DATAJUD_API_KEY =
   "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
@@ -34,12 +34,12 @@ function normalizeComplementValue(value?: string | number) {
   if (value === undefined || value === null) return "";
   const stringValue = String(value).trim();
   if (/^\d{1,4}$/.test(stringValue)) return "";
-  return humanizeIdentifier(stringValue);
+  return humanizeSentence(stringValue);
 }
 
 function normalizeComplementLabel(value?: string) {
   if (!value) return "";
-  return humanizeIdentifier(value);
+  return humanizeSentence(value);
 }
 
 function buildMovementDescription(

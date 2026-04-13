@@ -85,6 +85,14 @@ export default async function ProcessDetailsPage({
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            <a href="#publicacoes-oficiais">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:bg-slate-50"
+              >
+                Ir Para as Publicações
+              </button>
+            </a>
             <ReportButton processId={process.id} />
             <SyncButton processId={process.id} />
             <DeleteProcessButton processId={process.id} />
@@ -157,6 +165,16 @@ export default async function ProcessDetailsPage({
                     <p className="mt-3 text-sm leading-6 text-slate-700">
                       {publication.excerpt || publication.content}
                     </p>
+                    <div className="mt-3">
+                      <a href={`#publicacao-${publication.id}`}>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:bg-slate-50"
+                        >
+                          Publicação Atual
+                        </button>
+                      </a>
+                    </div>
                   </div>
                 ))
               )}

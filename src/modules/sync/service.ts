@@ -87,7 +87,7 @@ export async function syncProcess(
         data: {
           lastSyncedAt: syncedAt,
           lastEventAt: publicationSync.latestPublicationDate || process.lastEventAt || syncedAt,
-          monitoringStatus: hasPartialPublicationData ? "ACTIVE" : "ERROR",
+          monitoringStatus: hasPartialPublicationData ? "PARTIAL" : "ERROR",
         },
       }),
       prisma.syncLog.create({
@@ -170,7 +170,7 @@ export async function syncProcess(
         externalReference: snapshot.externalReference,
         lastSyncedAt: syncedAt,
         lastEventAt: publicationSync.latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
-        monitoringStatus: publicationError ? "ERROR" : "ACTIVE",
+        monitoringStatus: publicationError ? "PARTIAL" : "ACTIVE",
       },
     }),
   ];

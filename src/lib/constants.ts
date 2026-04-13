@@ -3,6 +3,7 @@ export const APP_NAME = "Monitoramento Inteligente de Processos";
 export const monitoringStatusConfig = {
   ACTIVE: "Ativo",
   PAUSED: "Pausado",
+  PARTIAL: "Sincronização Parcial",
   ERROR: "Com erro",
 } as const;
 

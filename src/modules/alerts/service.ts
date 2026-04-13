@@ -12,7 +12,7 @@ export function buildPublicationAlertData(input: {
   return {
     officeId: input.officeId,
     processId: input.processId,
-    title: `Nova publicacao oficial: ${input.publication.title}`,
+    title: `Nova Publicação Oficial: ${input.publication.title}`,
     message: buildPublicationAlertMessage(input.publication, severity),
     severity,
     requiresHumanReview: severity !== "INFO",

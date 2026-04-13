@@ -192,7 +192,7 @@ export async function syncProcess(
           return buildMovementAlertData({
             officeId,
             processId,
-            title: `Nova movimentacao: ${movement.title}`,
+            title: `Nova Movimentação: ${movement.title}`,
             message: `${summarizeText(movement.description, 160)} ${humanReviewLabel(severity)}.`,
             severity,
           });

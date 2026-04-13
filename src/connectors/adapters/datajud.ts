@@ -32,7 +32,9 @@ type DatajudResponse = {
 
 function normalizeComplementValue(value?: string | number) {
   if (value === undefined || value === null) return "";
-  return humanizeIdentifier(String(value));
+  const stringValue = String(value).trim();
+  if (/^\d{1,4}$/.test(stringValue)) return "";
+  return humanizeIdentifier(stringValue);
 }
 
 function normalizeComplementLabel(value?: string) {
@@ -60,8 +62,22 @@ function buildMovementDescription(
     return uniqueDetails.join(" • ");
   }
 
+  const normalizedTitle = humanizeIdentifier(movement.nome || "Movimentação Processual");
+
+  if (/expedição de documento/i.test(normalizedTitle)) {
+    return "Documento expedido e registrado no processo.";
+  }
+
+  if (/distribuição/i.test(normalizedTitle)) {
+    return "Distribuição registrada no processo.";
+  }
+
+  if (/petição/i.test(normalizedTitle)) {
+    return "Petição registrada no processo.";
+  }
+
   if (movement.nome) {
-    return `${humanizeIdentifier(movement.nome)} registrada no processo.`;
+    return `${normalizedTitle} registrada no processo.`;
   }
 
   return "Movimentação processual registrada pelo tribunal.";
@@ -116,9 +132,9 @@ export class DatajudConnector implements ProcessDataConnector {
     return {
       cnjNumber,
       court: source.tribunal || alias.replace("api_publica_", "").toUpperCase(),
-      className: source.classe?.nome || "Classe nao informada",
-      subject: source.assuntos?.map((item) => item.nome).filter(Boolean).join(" • ") || "Assunto nao informado",
-      judgingBody: source.orgaoJulgador?.nome || "Orgao julgador nao informado",
+      className: source.classe?.nome || "Classe não informada",
+      subject: source.assuntos?.map((item) => item.nome).filter(Boolean).join(" • ") || "Assunto não informado",
+      judgingBody: source.orgaoJulgador?.nome || "Órgão julgador não informado",
       externalReference: `${alias}:${source.numeroProcesso || normalizeCnjNumber(cnjNumber)}`,
       parties: [],
       movements:

@@ -12,7 +12,7 @@ export function classifyPublication(publication: ExternalPublication): AlertSeve
 }
 
 export function humanReviewLabel(severity: AlertSeverity) {
-  if (severity === "CRITICAL") return "Revisao humana imediata recomendada";
-  if (severity === "ATTENTION") return "Revisao humana recomendada";
-  return "Acompanhar na rotina do escritorio";
+  if (severity === "CRITICAL") return "Revisão humana imediata recomendada";
+  if (severity === "ATTENTION") return "Revisão humana recomendada";
+  return "Acompanhar na rotina do escritório";
 }

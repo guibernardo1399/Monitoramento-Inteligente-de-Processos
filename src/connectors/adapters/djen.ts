@@ -143,6 +143,12 @@ export class DjenConnector implements PublicationConnector {
 
     for (const variant of variants) {
       try {
+        console.log("[DJEN] Iniciando consulta pública", {
+          variant: variant.name,
+          cnjNumber: filters.cnjNumber,
+          court: filters.court || null,
+        });
+
         const url = new URL(env.djenApiPath, env.djenBaseUrl);
 
         Object.entries(variant.params).forEach(([key, value]) => {
@@ -154,14 +160,24 @@ export class DjenConnector implements PublicationConnector {
           timeoutMs: env.djenTimeoutMs,
           headers: {
             Accept: "application/json",
-            "User-Agent": "PJe-DataCollector/1.0",
+            "User-Agent": "Monitoramento-Inteligente-Processos/1.0",
           },
         });
 
         const items = response.items || response.content || response.data || [];
+        console.log("[DJEN] Consulta pública concluída com sucesso", {
+          variant: variant.name,
+          cnjNumber: filters.cnjNumber,
+          items: items.length,
+        });
         return items.map((item) => normalizePublication(item, filters));
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Falha ao consultar o DJEN.");
+        console.error("[DJEN] Falha na consulta pública", {
+          variant: variant.name,
+          cnjNumber: filters.cnjNumber,
+          message: lastError.message,
+        });
 
         if (lastError.message.includes("HTTP 403")) {
           continue;

@@ -8,7 +8,7 @@ SaaS MVP para advogados e pequenos escritorios com foco em:
 - alertas com severidade e revisao humana
 - relatorio do cliente em PDF com status atual do processo
 - rastreabilidade por logs de sincronizacao
-- arquitetura pronta para Datajud, DJEN e provedores privados
+- arquitetura pronta para Datajud e DJEN
 
 ## Stack
 
@@ -98,7 +98,6 @@ Na Vercel:
    - `DATAJUD_TRIBUNAL_ALIAS` se quiser forcar um alias
    - `DJEN_BASE_URL`
    - `DJEN_API_PATH`
-   - `DJEN_API_KEY` se a integracao exigir token
 3. Em `Build Command`, mantenha o build padrao
 4. Rode `npm run db:migrate` antes do primeiro uso produtivo
 
@@ -113,8 +112,7 @@ Para ligar integracoes reais:
    - o conector usa `POST /{alias}/_search` e normaliza a resposta
 2. DJEN:
    - preencha `DJEN_BASE_URL`
-   - defina `DJEN_API_PATH` com o caminho efetivo do endpoint que seu acesso usar
-   - se houver autenticacao, preencha `DJEN_API_KEY`
+   - defina `DJEN_API_PATH` com o caminho efetivo do endpoint publico em uso
 3. Os adaptadores reais ficam em:
    - `src/connectors/adapters/datajud.ts`
    - `src/connectors/adapters/djen.ts`

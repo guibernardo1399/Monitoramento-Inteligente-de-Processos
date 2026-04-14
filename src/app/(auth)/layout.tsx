@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm text-white/80">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Dashboard diario com alertas priorizados.</div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Conectores prontos para Datajud, DJEN e provedores privados.</div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Conectores prontos para DataJud e DJEN.</div>
         </div>
       </section>
       <section className="flex items-center justify-center p-5 md:p-10">

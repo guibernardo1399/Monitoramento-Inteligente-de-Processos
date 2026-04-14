@@ -10,7 +10,6 @@ export const env = {
   datajudTribunalAlias: process.env.DATAJUD_TRIBUNAL_ALIAS || "",
   datajudTimeoutMs: Number(process.env.DATAJUD_TIMEOUT_MS || "15000"),
   djenBaseUrl: process.env.DJEN_BASE_URL || "https://comunicaapi.pje.jus.br",
-  djenApiKey: process.env.DJEN_API_KEY || "",
   djenApiPath: process.env.DJEN_API_PATH || "/api/v1/comunicacao",
   djenTimeoutMs: Number(process.env.DJEN_TIMEOUT_MS || "15000"),
   djenInitialLookbackDays: Number(process.env.DJEN_INITIAL_LOOKBACK_DAYS || "180"),

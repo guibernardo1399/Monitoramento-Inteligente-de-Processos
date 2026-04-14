@@ -63,15 +63,38 @@ export async function syncProcess(
     throw new Error("Processo nao encontrado.");
   }
 
+  console.log("[SYNC] Início da sincronização", {
+    processId,
+    officeId,
+    cnjNumber: process.cnjNumber,
+    publicationMode: options?.publicationMode || "incremental",
+  });
+
   const syncStart = new Date();
   const syncSource = env.useMockConnectors ? "MOCK" : "DATAJUD";
   let snapshot = null;
   let snapshotError: string | null = null;
 
   try {
+    console.log("[SYNC] Consultando fonte", {
+      source: "DATAJUD",
+      processId,
+      cnjNumber: process.cnjNumber,
+    });
     snapshot = await datajudConnector.fetchProcessByCNJ(process.cnjNumber);
+    console.log("[SYNC] Sucesso na fonte", {
+      source: "DATAJUD",
+      processId,
+      found: Boolean(snapshot),
+      movements: snapshot?.movements?.length || 0,
+    });
   } catch (error) {
     snapshotError = error instanceof Error ? error.message : "Falha ao consultar os dados processuais.";
+    console.error("[SYNC] Falha na fonte", {
+      source: "DATAJUD",
+      processId,
+      message: snapshotError,
+    });
   }
 
   let publicationSync = {
@@ -83,6 +106,12 @@ export async function syncProcess(
   let publicationError: string | null = null;
 
   try {
+    console.log("[SYNC] Consultando fonte", {
+      source: "DJEN",
+      processId,
+      cnjNumber: process.cnjNumber,
+      mode: options?.publicationMode || "incremental",
+    });
     publicationSync = await syncProcessPublications({
       processId,
       officeId,
@@ -93,8 +122,19 @@ export async function syncProcess(
       lawyerOab: process.lawyerOab,
       mode: options?.publicationMode || "incremental",
     });
+    console.log("[SYNC] Sucesso na fonte", {
+      source: "DJEN",
+      processId,
+      fetched: publicationSync.fetchedPublications.length,
+      newPublications: publicationSync.newPublications,
+    });
   } catch (error) {
     publicationError = error instanceof Error ? error.message : "Falha ao consultar publicacoes oficiais.";
+    console.error("[SYNC] Falha na fonte", {
+      source: "DJEN",
+      processId,
+      message: publicationError,
+    });
   }
 
   if (!snapshot) {
@@ -255,6 +295,19 @@ export async function syncProcess(
   );
 
   await prisma.$transaction(operations);
+
+  console.log("[SYNC] Fim da sincronização", {
+    processId,
+    cnjNumber: process.cnjNumber,
+    newMovements: movementCreates.length,
+    newPublications: publicationSync.newPublications,
+    status:
+      snapshotError || publicationError
+        ? isPartialExternalIssue(snapshotError) || isPartialExternalIssue(publicationError)
+          ? "PARTIAL"
+          : "FAILED"
+        : "SUCCESS",
+  });
 
   return {
     newMovements: movementCreates.length,

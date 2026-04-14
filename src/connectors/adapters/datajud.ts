@@ -125,6 +125,10 @@ export class DatajudConnector implements ProcessDataConnector {
 
     const apiKey = env.datajudApiKey || OFFICIAL_PUBLIC_DATAJUD_API_KEY;
     const url = `${env.datajudBaseUrl.replace(/\/$/, "")}/${alias}/_search`;
+    console.log("[DATAJUD] Iniciando consulta pública", {
+      cnjNumber,
+      alias,
+    });
     const response = await fetchJson<DatajudResponse>(url, {
       method: "POST",
       timeoutMs: env.datajudTimeoutMs,
@@ -135,6 +139,12 @@ export class DatajudConnector implements ProcessDataConnector {
     });
 
     const source = response.hits?.hits?.[0]?._source;
+    console.log("[DATAJUD] Consulta pública concluída", {
+      cnjNumber,
+      alias,
+      found: Boolean(source),
+      movements: source?.movimentos?.length || 0,
+    });
     if (!source) return null;
 
     return {

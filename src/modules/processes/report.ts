@@ -326,7 +326,7 @@ export async function generateProcessPdfReport(process: ReportProcess) {
 
       drawEntryBlock(
         alert.title,
-        `${config.label} • ${normalizeAlertStatus(alert.status)} • Registrado em ${formatDateTime(alert.createdAt)}`,
+        `${config.label} • ${normalizeAlertStatus(alert.status)} • Alerta gerado em ${formatDateTime(alert.createdAt)}`,
         summarizeText(alert.message, 260),
         accent,
       );
@@ -340,7 +340,7 @@ export async function generateProcessPdfReport(process: ReportProcess) {
     for (const movement of process.movements.slice(0, 8)) {
       drawEntryBlock(
         movement.title,
-        `Registrada em ${formatDateTime(movement.movementDate)}`,
+        `Movimentação registrada em ${formatDateTime(movement.movementDate)}`,
         summarizeText(buildMovementSummary(movement.title, movement.description), 260),
         colors.info,
       );
@@ -356,7 +356,7 @@ export async function generateProcessPdfReport(process: ReportProcess) {
   } else {
     for (const publication of process.publications.slice(0, 6)) {
       const metaParts = [
-        `Publicada em ${formatDateTime(publication.publicationDate)}`,
+        `Publicação emitida em ${formatDateTime(publication.publicationDate)}`,
         publication.availabilityDate
           ? `Disponibilizada em ${formatDateTime(publication.availabilityDate)}`
           : null,

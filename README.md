@@ -32,6 +32,7 @@ npm install
 
 - `DATABASE_URL`: use a string do pooler na porta `6543`
 - `DIRECT_URL`: use a string direta na porta `5432`
+- `CRON_SECRET`: segredo usado para disparar a sincronizacao automatica
 
 3. Gere o schema e popule o banco:
 
@@ -90,6 +91,7 @@ Na Vercel:
    - `DIRECT_URL`
    - `AUTH_COOKIE_NAME`
    - `APP_URL`
+   - `CRON_SECRET`
    - `USE_MOCK_CONNECTORS`
    - `DATAJUD_BASE_URL`
    - `DATAJUD_API_KEY`
@@ -121,6 +123,18 @@ Para ligar integracoes reais:
    - `src/connectors/utils/tribunal-alias.ts`
 5. Mantenha a interface de retorno definida em:
    - `src/connectors/types.ts`
+
+## Sincronizacao automatica
+
+O projeto possui uma rota integrada ao proprio site para sincronizacao recorrente:
+
+- `POST /api/cron/sync-processes`
+
+Ela deve ser chamada por um cron do Supabase com `CRON_SECRET`.
+
+O passo a passo de configuracao esta em:
+
+- `docs/supabase-process-sync.md`
 
 ## Observacao importante do produto
 

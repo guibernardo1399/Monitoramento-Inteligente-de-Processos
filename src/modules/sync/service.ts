@@ -26,6 +26,20 @@ function summarizeSyncWarning(message: string) {
   return summarizeText(message, 140);
 }
 
+function isPartialExternalIssue(message?: string | null) {
+  if (!message) return false;
+
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("http 403") ||
+    normalized.includes("bloqueou a consulta publica") ||
+    normalized.includes("excedeu o tempo limite") ||
+    normalized.includes("timeout") ||
+    normalized.includes("tente novamente mais tarde")
+  );
+}
+
 function buildMovementAlertMessage(input: {
   title: string;
   description: string;
@@ -86,7 +100,8 @@ export async function syncProcess(
   if (!snapshot) {
     const syncedAt = new Date();
     const hasPartialPublicationData = publicationSync.newPublications > 0 || Boolean(publicationSync.latestPublicationDate);
-    const status = hasPartialPublicationData ? "PARTIAL" : "FAILED";
+    const partialIssue = hasPartialPublicationData || isPartialExternalIssue(publicationError);
+    const status = partialIssue ? "PARTIAL" : "FAILED";
     const errorMessage = [snapshotError, publicationError]
       .filter(Boolean)
       .join(" | ") || "Nenhum dado retornado pelo conector configurado.";
@@ -97,7 +112,7 @@ export async function syncProcess(
         data: {
           lastSyncedAt: syncedAt,
           lastEventAt: publicationSync.latestPublicationDate || process.lastEventAt || syncedAt,
-          monitoringStatus: hasPartialPublicationData ? "PARTIAL" : "ERROR",
+          monitoringStatus: partialIssue ? "PARTIAL" : "ERROR",
         },
       }),
       prisma.syncLog.create({
@@ -121,9 +136,9 @@ export async function syncProcess(
       newMovements: 0,
       newPublications: publicationSync.newPublications,
       status: status as "PARTIAL" | "FAILED",
-      syncedAt: hasPartialPublicationData ? syncedAt.toISOString() : null,
+      syncedAt: syncedAt.toISOString(),
       message:
-        hasPartialPublicationData
+        partialIssue
           ? options?.publicationMode === "initial"
             ? summarizeSyncWarning(
                 `O processo foi cadastrado, mas a carga inicial ficou parcial. Publicacoes recuperadas: ${publicationSync.newPublications}. ${errorMessage}`,
@@ -180,7 +195,7 @@ export async function syncProcess(
         externalReference: snapshot.externalReference,
         lastSyncedAt: syncedAt,
         lastEventAt: publicationSync.latestPublicationDate || latestMovementDate || process.lastEventAt || new Date(),
-        monitoringStatus: publicationError ? "PARTIAL" : "ACTIVE",
+        monitoringStatus: publicationError ? (isPartialExternalIssue(publicationError) ? "PARTIAL" : "ERROR") : "ACTIVE",
       },
     }),
   ];
@@ -225,10 +240,10 @@ export async function syncProcess(
         finishedAt: syncedAt,
         status:
           snapshotError || publicationError
-            ? "PARTIAL"
-            : publicationSync.newPublications > 0 || movementCreates.length > 0
-              ? "SUCCESS"
-              : "PARTIAL",
+            ? isPartialExternalIssue(snapshotError) || isPartialExternalIssue(publicationError)
+              ? "PARTIAL"
+              : "FAILED"
+            : "SUCCESS",
         errorMessage: [snapshotError, publicationError].filter(Boolean).join(" | ") || null,
         rawPayload: JSON.stringify({
           snapshot,
@@ -244,12 +259,11 @@ export async function syncProcess(
   return {
     newMovements: movementCreates.length,
     newPublications: publicationSync.newPublications,
-    status:
-      snapshotError || publicationError
+    status: snapshotError || publicationError
+      ? isPartialExternalIssue(snapshotError) || isPartialExternalIssue(publicationError)
         ? ("PARTIAL" as const)
-        : publicationSync.newPublications > 0 || movementCreates.length > 0
-          ? ("SUCCESS" as const)
-          : ("PARTIAL" as const),
+        : ("FAILED" as const)
+      : ("SUCCESS" as const),
     syncedAt: syncedAt.toISOString(),
     message:
       snapshotError || publicationError

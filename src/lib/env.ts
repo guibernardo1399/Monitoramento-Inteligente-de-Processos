@@ -3,6 +3,7 @@ export const env = {
   directUrl: process.env.DIRECT_URL || "",
   authCookieName: process.env.AUTH_COOKIE_NAME || "mip_session",
   appUrl: process.env.APP_URL || "http://localhost:3000",
+  cronSecret: process.env.CRON_SECRET || "",
   datajudBaseUrl: process.env.DATAJUD_BASE_URL || "",
   datajudApiKey: process.env.DATAJUD_API_KEY || "",
   datajudUsePublicKeyFallback: process.env.DATAJUD_USE_PUBLIC_KEY_FALLBACK !== "false",

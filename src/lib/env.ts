@@ -9,7 +9,7 @@ export const env = {
   datajudUsePublicKeyFallback: process.env.DATAJUD_USE_PUBLIC_KEY_FALLBACK !== "false",
   datajudTribunalAlias: process.env.DATAJUD_TRIBUNAL_ALIAS || "",
   datajudTimeoutMs: Number(process.env.DATAJUD_TIMEOUT_MS || "15000"),
-  djenBaseUrl: process.env.DJEN_BASE_URL || "https://comunicaapi.pje.jus.br",
+  djenBaseUrl: process.env.DJEN_BASE_URL || "",
   djenApiPath: process.env.DJEN_API_PATH || "/api/v1/comunicacao",
   djenTimeoutMs: Number(process.env.DJEN_TIMEOUT_MS || "15000"),
   djenInitialLookbackDays: Number(process.env.DJEN_INITIAL_LOOKBACK_DAYS || "180"),

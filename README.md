@@ -113,6 +113,7 @@ Para ligar integracoes reais:
 2. DJEN:
    - preencha `DJEN_BASE_URL`
    - defina `DJEN_API_PATH` com o caminho efetivo do endpoint publico em uso
+   - o sistema bloqueia automaticamente domínios não permitidos no conector do DJEN
 3. Os adaptadores reais ficam em:
    - `src/connectors/adapters/datajud.ts`
    - `src/connectors/adapters/djen.ts`

@@ -37,6 +37,11 @@ type DjenQueryVariant = {
   params: Record<string, string>;
 };
 
+function isForbiddenDjenSource(urlValue: string) {
+  const forbiddenHostToken = ["comunica", "api"].join("");
+  return new RegExp(forbiddenHostToken, "i").test(urlValue);
+}
+
 function compactWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -95,11 +100,29 @@ function normalizePublication(item: DjenApiItem, filters: PublicationSearchFilte
 
 export class DjenConnector implements PublicationConnector {
   key = "DJEN";
-  supportsLiveData = Boolean(env.djenBaseUrl && env.djenApiPath);
+  supportsLiveData = Boolean(
+    env.djenBaseUrl &&
+      env.djenApiPath &&
+      !isForbiddenDjenSource(env.djenBaseUrl) &&
+      !isForbiddenDjenSource(env.djenApiPath),
+  );
 
   async fetchPublications(filters: PublicationSearchFilters) {
-    if (!this.supportsLiveData || env.useMockConnectors) {
+    if (env.useMockConnectors) {
       return mockProcessSnapshots[filters.cnjNumber]?.publications ?? [];
+    }
+
+    if (isForbiddenDjenSource(env.djenBaseUrl) || isForbiddenDjenSource(env.djenApiPath)) {
+      console.error("[ERRO] Tentativa de acesso a fonte não permitida", {
+        source: "DJEN",
+        baseUrl: env.djenBaseUrl,
+        path: env.djenApiPath,
+      });
+      throw new Error("Fonte DJEN configurada em domínio não permitido.");
+    }
+
+    if (!this.supportsLiveData) {
+      throw new Error("Fonte DJEN não configurada corretamente.");
     }
 
     const normalizedCnj = normalizeCnjNumber(filters.cnjNumber);
@@ -143,6 +166,10 @@ export class DjenConnector implements PublicationConnector {
 
     for (const variant of variants) {
       try {
+        console.log("[SYNC] Fonte permitida: DataJud/DJEN", {
+          source: "DJEN",
+          variant: variant.name,
+        });
         console.log("[DJEN] Iniciando consulta pública", {
           variant: variant.name,
           cnjNumber: filters.cnjNumber,

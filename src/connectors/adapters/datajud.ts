@@ -98,8 +98,12 @@ export class DatajudConnector implements ProcessDataConnector {
   );
 
   async fetchProcessByCNJ(cnjNumber: string) {
-    if (!this.supportsLiveData || env.useMockConnectors) {
+    if (env.useMockConnectors) {
       return mockProcessSnapshots[cnjNumber] ?? null;
+    }
+
+    if (!this.supportsLiveData) {
+      throw new Error("Fonte DataJud não configurada corretamente.");
     }
 
     const alias = resolveDatajudAlias(cnjNumber, env.datajudTribunalAlias);
@@ -125,6 +129,10 @@ export class DatajudConnector implements ProcessDataConnector {
 
     const apiKey = env.datajudApiKey || OFFICIAL_PUBLIC_DATAJUD_API_KEY;
     const url = `${env.datajudBaseUrl.replace(/\/$/, "")}/${alias}/_search`;
+    console.log("[SYNC] Fonte permitida: DataJud/DJEN", {
+      source: "DATAJUD",
+      alias,
+    });
     console.log("[DATAJUD] Iniciando consulta pública", {
       cnjNumber,
       alias,

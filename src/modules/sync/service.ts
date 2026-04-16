@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/server/db/prisma";
-import { datajudConnector } from "@/connectors";
+import { datajudConnector, djenConnector } from "@/connectors";
 import { classifyMovement, humanReviewLabel } from "@/modules/alerts/rules";
 import { buildMovementAlertData } from "@/modules/alerts/service";
 import { buildMovementSummary } from "@/modules/processes/summaries";
@@ -105,35 +105,43 @@ export async function syncProcess(
   };
   let publicationError: string | null = null;
 
-  try {
-    console.log("[SYNC] Consultando fonte", {
+  if (env.useMockConnectors || djenConnector.supportsLiveData) {
+    try {
+      console.log("[SYNC] Consultando fonte", {
+        source: "DJEN",
+        processId,
+        cnjNumber: process.cnjNumber,
+        mode: options?.publicationMode || "incremental",
+      });
+      publicationSync = await syncProcessPublications({
+        processId,
+        officeId,
+        cnjNumber: process.cnjNumber,
+        court: process.court,
+        judgingBody: process.judgingBody,
+        lawyerName: process.lawyerName,
+        lawyerOab: process.lawyerOab,
+        mode: options?.publicationMode || "incremental",
+      });
+      console.log("[SYNC] Sucesso na fonte", {
+        source: "DJEN",
+        processId,
+        fetched: publicationSync.fetchedPublications.length,
+        newPublications: publicationSync.newPublications,
+      });
+    } catch (error) {
+      publicationError = error instanceof Error ? error.message : "Falha ao consultar publicacoes oficiais.";
+      console.error("[SYNC] Falha na fonte", {
+        source: "DJEN",
+        processId,
+        message: publicationError,
+      });
+    }
+  } else {
+    console.log("[SYNC] Fonte ignorada por configuração desativada", {
       source: "DJEN",
       processId,
       cnjNumber: process.cnjNumber,
-      mode: options?.publicationMode || "incremental",
-    });
-    publicationSync = await syncProcessPublications({
-      processId,
-      officeId,
-      cnjNumber: process.cnjNumber,
-      court: process.court,
-      judgingBody: process.judgingBody,
-      lawyerName: process.lawyerName,
-      lawyerOab: process.lawyerOab,
-      mode: options?.publicationMode || "incremental",
-    });
-    console.log("[SYNC] Sucesso na fonte", {
-      source: "DJEN",
-      processId,
-      fetched: publicationSync.fetchedPublications.length,
-      newPublications: publicationSync.newPublications,
-    });
-  } catch (error) {
-    publicationError = error instanceof Error ? error.message : "Falha ao consultar publicacoes oficiais.";
-    console.error("[SYNC] Falha na fonte", {
-      source: "DJEN",
-      processId,
-      message: publicationError,
     });
   }
 

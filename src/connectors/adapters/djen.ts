@@ -100,11 +100,11 @@ function normalizePublication(item: DjenApiItem, filters: PublicationSearchFilte
 
 export class DjenConnector implements PublicationConnector {
   key = "DJEN";
+  hasForbiddenConfiguration = isForbiddenDjenSource(env.djenBaseUrl) || isForbiddenDjenSource(env.djenApiPath);
+  hasUsableConfiguration = Boolean(env.djenBaseUrl && env.djenApiPath);
   supportsLiveData = Boolean(
-    env.djenBaseUrl &&
-      env.djenApiPath &&
-      !isForbiddenDjenSource(env.djenBaseUrl) &&
-      !isForbiddenDjenSource(env.djenApiPath),
+    this.hasUsableConfiguration &&
+      !this.hasForbiddenConfiguration,
   );
 
   async fetchPublications(filters: PublicationSearchFilters) {
@@ -112,17 +112,14 @@ export class DjenConnector implements PublicationConnector {
       return mockProcessSnapshots[filters.cnjNumber]?.publications ?? [];
     }
 
-    if (isForbiddenDjenSource(env.djenBaseUrl) || isForbiddenDjenSource(env.djenApiPath)) {
-      console.error("[ERRO] Tentativa de acesso a fonte não permitida", {
-        source: "DJEN",
-        baseUrl: env.djenBaseUrl,
-        path: env.djenApiPath,
-      });
-      throw new Error("Fonte DJEN configurada em domínio não permitido.");
+    if (this.hasForbiddenConfiguration) {
+      console.warn("[SYNC] DJEN desativado por configuração não permitida.");
+      return [];
     }
 
     if (!this.supportsLiveData) {
-      throw new Error("Fonte DJEN não configurada corretamente.");
+      console.warn("[SYNC] DJEN desativado por configuração ausente.");
+      return [];
     }
 
     const normalizedCnj = normalizeCnjNumber(filters.cnjNumber);

@@ -6,16 +6,26 @@ import { requireUser } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
 import { syncProcess } from "@/modules/sync/service";
 import { env } from "@/lib/env";
+import { guardJsonRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
-    const body = processCreateSchema.parse(await request.json());
+    const body = await guardJsonRequest(request, {
+      schema: processCreateSchema,
+      maxBytes: 10 * 1024,
+      requireSameOrigin: true,
+      rateLimit: {
+        bucket: "processes-create",
+        limit: 20,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
     const internalResponsibleId =
       user.role === "OWNER" ? body.internalResponsibleId || null : user.id;
 
     if (user.role !== "OWNER" && body.internalResponsibleId && body.internalResponsibleId !== user.id) {
-      return NextResponse.json(
+      return secureJson(
         { error: "Membros so podem criar processos sob a propria responsabilidade." },
         { status: 403 },
       );
@@ -29,7 +39,7 @@ export async function POST(request: Request) {
       const message =
         error instanceof Error ? error.message : "Nao foi possivel consultar o processo no momento.";
 
-      return NextResponse.json(
+      return secureJson(
         {
           error: env.useMockConnectors
             ? `Nao foi possivel localizar esse processo na base de demonstracao. ${message}`
@@ -40,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     if (!snapshot) {
-      return NextResponse.json(
+      return secureJson(
         {
           error: env.useMockConnectors
             ? "Nao encontramos esse numero CNJ na base de demonstracao. Tente um dos processos seed ou ative a consulta oficial."
@@ -81,7 +91,7 @@ export async function POST(request: Request) {
     try {
       const syncResult = await syncProcess(process.id, user.officeId, { publicationMode: "initial" });
 
-      return NextResponse.json({
+      return secureJson({
         id: process.id,
         warning: syncResult.status !== "SUCCESS" ? syncResult.message : null,
       });
@@ -108,22 +118,19 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({
+      return secureJson({
         id: process.id,
         warning: `O processo foi cadastrado, mas a carga inicial nao terminou por completo. ${message}`,
       });
     }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json(
+      return secureJson(
         { error: "Ja existe um processo cadastrado com esse numero CNJ." },
         { status: 409 },
       );
     }
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao cadastrar processo." },
-      { status: 400 },
-    );
+    return handleRouteError(error, "Erro ao cadastrar processo.");
   }
 }

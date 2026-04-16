@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { alertActionSchema } from "@/lib/validators";
 import { requireUser } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
+import { guardJsonRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 export async function PATCH(
   request: Request,
@@ -10,7 +11,16 @@ export async function PATCH(
   try {
     const user = await requireUser();
     const { id } = await params;
-    const body = alertActionSchema.parse(await request.json());
+    const body = await guardJsonRequest(request, {
+      schema: alertActionSchema,
+      maxBytes: 4 * 1024,
+      requireSameOrigin: true,
+      rateLimit: {
+        bucket: "alerts-update",
+        limit: 60,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
 
     const alert = await prisma.alert.updateMany({
       where: {
@@ -29,11 +39,8 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(alert);
+    return secureJson(alert);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao atualizar alerta." },
-      { status: 400 },
-    );
+    return handleRouteError(error, "Erro ao atualizar alerta.");
   }
 }

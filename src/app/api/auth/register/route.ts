@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validators";
 import { createSession, hashPassword } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
+import { guardJsonRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 function slugify(value: string) {
   return value
@@ -14,12 +14,21 @@ function slugify(value: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = registerSchema.parse(await request.json());
+    const body = await guardJsonRequest(request, {
+      schema: registerSchema,
+      maxBytes: 6 * 1024,
+      requireSameOrigin: true,
+      rateLimit: {
+        bucket: "auth-register",
+        limit: 5,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
     const email = body.email.toLowerCase();
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: "Ja existe uma conta com este e-mail." }, { status: 409 });
+      return secureJson({ error: "Ja existe uma conta com este e-mail." }, { status: 409 });
     }
 
     const office = await prisma.office.create({
@@ -40,11 +49,8 @@ export async function POST(request: Request) {
     });
 
     await createSession(user.id);
-    return NextResponse.json({ ok: true });
+    return secureJson({ ok: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao criar conta." },
-      { status: 400 },
-    );
+    return handleRouteError(error, "Erro ao criar conta.");
   }
 }

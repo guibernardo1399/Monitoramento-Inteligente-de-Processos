@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { prisma } from "@/server/db/prisma";
 import { syncOfficeProcesses } from "@/jobs/monitor-processes";
+import { guardRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 function isAuthorized(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -18,8 +19,18 @@ function isAuthorized(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await guardRequest(request, {
+      allowMissingOrigin: true,
+      rateLimit: {
+        bucket: "cron-sync-processes",
+        limit: 20,
+        windowMs: 10 * 60 * 1000,
+        key: "trusted-cron",
+      },
+    });
+
     if (!isAuthorized(request)) {
-      return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
+      return secureJson({ error: "Nao autorizado." }, { status: 401 });
     }
 
     const offices = await prisma.office.findMany({
@@ -47,21 +58,13 @@ export async function POST(request: Request) {
       summary.failedProcesses += result.failedProcesses;
     }
 
-    return NextResponse.json({
+    return secureJson({
       ok: true,
       ...summary,
       message: `Sincronização automática concluída. Escritórios: ${summary.officesProcessed}. Processos consultados: ${summary.totalProcesses}. Com novidades: ${summary.updatedProcesses}. Parciais: ${summary.partialProcesses}. Com erro: ${summary.failedProcesses}.`,
       executedAt: new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Nao foi possivel executar a sincronizacao automatica.",
-      },
-      { status: 500 },
-    );
+    return handleRouteError(error, "Nao foi possivel executar a sincronizacao automatica.", 500);
   }
 }

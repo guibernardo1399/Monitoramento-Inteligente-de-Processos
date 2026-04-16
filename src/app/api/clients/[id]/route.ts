@@ -1,17 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { requireUser } from "@/server/auth/session";
+import { guardRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await guardRequest(_request, {
+      requireSameOrigin: true,
+      rateLimit: {
+        bucket: "clients-delete",
+        limit: 20,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
+
     const user = await requireUser();
     const { id } = await params;
 
     if (user.role !== "OWNER") {
-      return NextResponse.json(
+      return secureJson(
         { error: "Somente o proprietario pode apagar clientes." },
         { status: 403 },
       );
@@ -33,11 +43,11 @@ export async function DELETE(
     });
 
     if (!client) {
-      return NextResponse.json({ error: "Cliente nao encontrado." }, { status: 404 });
+      return secureJson({ error: "Cliente nao encontrado." }, { status: 404 });
     }
 
     if (client._count.processes > 0) {
-      return NextResponse.json(
+      return secureJson(
         { error: "Este cliente possui processos vinculados e nao pode ser apagado." },
         { status: 400 },
       );
@@ -47,11 +57,8 @@ export async function DELETE(
       where: { id: client.id },
     });
 
-    return NextResponse.json({ ok: true });
+    return secureJson({ ok: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao apagar cliente." },
-      { status: 400 },
-    );
+    return handleRouteError(error, "Erro ao apagar cliente.");
   }
 }

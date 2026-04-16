@@ -2,11 +2,21 @@ import { NextResponse } from "next/server";
 import { clientSchema } from "@/lib/validators";
 import { requireUser } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
+import { guardJsonRequest, handleRouteError, secureJson } from "@/server/security/http";
 
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
-    const body = clientSchema.parse(await request.json());
+    const body = await guardJsonRequest(request, {
+      schema: clientSchema,
+      maxBytes: 8 * 1024,
+      requireSameOrigin: true,
+      rateLimit: {
+        bucket: "clients-create",
+        limit: 30,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
 
     const client = await prisma.client.create({
       data: {
@@ -17,11 +27,8 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(client);
+    return secureJson(client);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao cadastrar cliente." },
-      { status: 400 },
-    );
+    return handleRouteError(error, "Erro ao cadastrar cliente.");
   }
 }

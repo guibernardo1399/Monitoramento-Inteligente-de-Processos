@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateProcessPdfReport } from "@/modules/processes/report";
 import { requireUser } from "@/server/auth/session";
 import { getProcessDetails } from "@/modules/processes/queries";
+import { guardRequest, secureJson, secureResponse, handleRouteError } from "@/server/security/http";
 
 function buildClientReportFilename(clientName: string) {
   const normalized = clientName
@@ -16,24 +17,38 @@ function buildClientReportFilename(clientName: string) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await requireUser();
-  const { id } = await params;
-  const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
+  try {
+    await guardRequest(request, {
+      rateLimit: {
+        bucket: "processes-report",
+        limit: 30,
+        windowMs: 10 * 60 * 1000,
+      },
+    });
 
-  if (!process) {
-    return NextResponse.json({ error: "Processo nao encontrado." }, { status: 404 });
+    const user = await requireUser();
+    const { id } = await params;
+    const process = await getProcessDetails(id, user.officeId, user.id, user.role === "OWNER");
+
+    if (!process) {
+      return secureJson({ error: "Processo nao encontrado." }, { status: 404 });
+    }
+
+    const pdf = await generateProcessPdfReport(process);
+
+    return secureResponse(
+      new NextResponse(pdf, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="relatorio-${buildClientReportFilename(process.client.name)}.pdf"`,
+        },
+      }),
+    );
+  } catch (error) {
+    return handleRouteError(error, "Nao foi possivel gerar o relatorio.");
   }
-
-  const pdf = await generateProcessPdfReport(process);
-
-  return new NextResponse(pdf, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="relatorio-${buildClientReportFilename(process.client.name)}.pdf"`,
-    },
-  });
 }

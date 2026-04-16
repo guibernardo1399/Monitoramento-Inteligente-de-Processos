@@ -47,7 +47,7 @@ export class HttpSecurityError extends Error {
   }
 }
 
-function getAllowedOrigin() {
+function getConfiguredOrigin() {
   try {
     return new URL(process.env.APP_URL || "http://localhost:3000").origin;
   } catch {
@@ -64,6 +64,31 @@ function getRequestOrigin(request: Request) {
   } catch {
     return null;
   }
+}
+
+function getRequestRefererOrigin(request: Request) {
+  const referer = request.headers.get("referer");
+  if (!referer) return null;
+
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getRequestUrlOrigin(request: Request) {
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getAllowedOrigins(request: Request) {
+  return new Set(
+    [getConfiguredOrigin(), getRequestUrlOrigin(request)].filter(Boolean) as string[],
+  );
 }
 
 function getRequestIp(request: Request) {
@@ -107,13 +132,18 @@ function applyRateLimit(request: Request, options?: RateLimitOptions) {
 
 function ensureSameOrigin(request: Request, allowMissingOrigin = false) {
   const origin = getRequestOrigin(request);
+  const refererOrigin = getRequestRefererOrigin(request);
+  const fetchSite = request.headers.get("sec-fetch-site");
+  const allowedOrigins = getAllowedOrigins(request);
 
   if (!origin) {
+    if (refererOrigin && allowedOrigins.has(refererOrigin)) return;
+    if (fetchSite === "same-origin" || fetchSite === "same-site") return;
     if (allowMissingOrigin) return;
     throw new HttpSecurityError("Origem da requisição não permitida.", 403);
   }
 
-  if (origin !== getAllowedOrigin()) {
+  if (!allowedOrigins.has(origin)) {
     throw new HttpSecurityError("Origem da requisição não permitida.", 403);
   }
 }

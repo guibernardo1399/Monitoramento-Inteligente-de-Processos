@@ -186,6 +186,8 @@ Observacoes importantes:
 - Para Cloudflare, o Prisma foi ajustado para usar `engineType = "client"` e `@prisma/adapter-pg`.
 - O `nodejs_compat` foi habilitado no `wrangler.jsonc`.
 - Se voce usar Supabase Postgres, prefira a connection string direta para o runtime do Worker.
+- No Cloudflare, variaveis de build e variaveis de runtime sao coisas diferentes. Para o app funcionar publicado, cadastre `DATABASE_URL`, `DIRECT_URL`, `AUTH_COOKIE_NAME`, `APP_URL` e os demais secrets em `Worker > Settings > Variables and Secrets`, nao apenas em `Build variables and secrets`.
+- O deploy foi configurado com `--keep-vars` para preservar as variaveis de runtime cadastradas no dashboard.
 
 ## Integracao real: Datajud e DJEN
 

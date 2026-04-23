@@ -144,6 +144,13 @@ npm run preview
 npm run deploy
 ```
 
+Se voce estiver usando o painel de Workers Builds do Cloudflare, configure exatamente assim:
+
+- Build command: `npm run build:cloudflare`
+- Deploy command: `npm run deploy:cloudflare`
+
+O `deploy` do OpenNext precisa encontrar os artefatos gerados em `.open-next`, entao ele nao deve ser executado sozinho sem o passo de build antes.
+
 6. Configure os secrets no Cloudflare:
 
 ```bash

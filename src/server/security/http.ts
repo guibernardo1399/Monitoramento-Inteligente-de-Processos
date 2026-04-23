@@ -212,6 +212,12 @@ export function secureResponse(response: NextResponse) {
 }
 
 export function handleRouteError(error: unknown, fallbackMessage: string, fallbackStatus = 400) {
+  console.error("[API] Route error", {
+    fallbackMessage,
+    message: error instanceof Error ? error.message : "Erro desconhecido",
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
+
   if (error instanceof HttpSecurityError) {
     return secureJson({ error: error.message }, { status: error.status });
   }

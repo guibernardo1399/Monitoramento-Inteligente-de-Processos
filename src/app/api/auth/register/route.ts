@@ -14,6 +14,7 @@ function slugify(value: string) {
 
 export async function POST(request: Request) {
   try {
+    console.log("[AUTH] Iniciando criação de conta");
     const body = await guardJsonRequest(request, {
       schema: registerSchema,
       maxBytes: 6 * 1024,
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
+      console.warn("[AUTH] Cadastro com e-mail existente", { email });
       return secureJson({ error: "Ja existe uma conta com este e-mail." }, { status: 409 });
     }
 
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
     });
 
     await createSession(user.id);
+    console.log("[AUTH] Conta criada com sucesso", { userId: user.id, officeId: office.id });
     return secureJson({ ok: true });
   } catch (error) {
     return handleRouteError(error, "Erro ao criar conta.");

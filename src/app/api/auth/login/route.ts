@@ -5,6 +5,7 @@ import { guardJsonRequest, handleRouteError, secureJson } from "@/server/securit
 
 export async function POST(request: Request) {
   try {
+    console.log("[AUTH] Iniciando login");
     const body = await guardJsonRequest(request, {
       schema: loginSchema,
       maxBytes: 4 * 1024,
@@ -21,15 +22,18 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
+      console.warn("[AUTH] Login sem usuário", { email: body.email.toLowerCase() });
       return secureJson({ error: "Credenciais invalidas." }, { status: 401 });
     }
 
     const validPassword = await verifyPassword(body.password, user.passwordHash);
     if (!validPassword) {
+      console.warn("[AUTH] Login com senha inválida", { email: body.email.toLowerCase() });
       return secureJson({ error: "Credenciais invalidas." }, { status: 401 });
     }
 
     await createSession(user.id);
+    console.log("[AUTH] Login concluído com sucesso", { userId: user.id });
 
     return secureJson({ ok: true });
   } catch (error) {

@@ -60,29 +60,38 @@ export const getCurrentUser = cache(async () => {
 
   if (!token) return null;
 
-  const session = await prisma.session.findUnique({
-    where: { token },
-    select: {
-      expiresAt: true,
-      user: {
-        select: {
-          id: true,
-          officeId: true,
-          name: true,
-          email: true,
-          role: true,
-          office: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              plan: true,
+  let session = null;
+
+  try {
+    session = await prisma.session.findUnique({
+      where: { token },
+      select: {
+        expiresAt: true,
+        user: {
+          select: {
+            id: true,
+            officeId: true,
+            name: true,
+            email: true,
+            role: true,
+            office: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                plan: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[AUTH] Falha ao recuperar sessão atual", {
+      message: error instanceof Error ? error.message : "Erro desconhecido",
+    });
+    return null;
+  }
 
   if (!session || session.expiresAt < new Date()) {
     return null;

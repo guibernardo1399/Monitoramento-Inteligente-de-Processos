@@ -22,6 +22,10 @@ SaaS MVP para advogados e pequenos escritorios com foco em:
 
 ## Como rodar
 
+Requisito de ambiente:
+
+- Node.js `20.18.1` ou superior
+
 1. Instale as dependencias:
 
 ```bash
@@ -100,6 +104,73 @@ Na Vercel:
    - `DJEN_API_PATH`
 3. Em `Build Command`, mantenha o build padrao
 4. Rode `npm run db:migrate` antes do primeiro uso produtivo
+
+## Cloudflare Workers
+
+O projeto foi preparado para deploy em Cloudflare Workers com OpenNext.
+
+Arquivos adicionados para isso:
+
+- `wrangler.jsonc`
+- `open-next.config.ts`
+- `.dev.vars.example`
+
+Passos:
+
+1. Instale as dependencias do projeto:
+
+```bash
+nvm use
+npm install
+```
+
+2. Copie `.dev.vars.example` para `.dev.vars` e preencha as variaveis reais.
+
+3. Gere o Prisma Client:
+
+```bash
+npm run db:generate
+```
+
+4. Para testar localmente no runtime do Cloudflare:
+
+```bash
+npm run preview
+```
+
+5. Para deploy:
+
+```bash
+npm run deploy
+```
+
+6. Configure os secrets no Cloudflare:
+
+```bash
+npx wrangler secret put DATABASE_URL
+npx wrangler secret put DIRECT_URL
+npx wrangler secret put AUTH_COOKIE_NAME
+npx wrangler secret put APP_URL
+npx wrangler secret put CRON_SECRET
+npx wrangler secret put DATAJUD_BASE_URL
+npx wrangler secret put DATAJUD_API_KEY
+npx wrangler secret put DATAJUD_USE_PUBLIC_KEY_FALLBACK
+npx wrangler secret put DATAJUD_TRIBUNAL_ALIAS
+npx wrangler secret put DATAJUD_TIMEOUT_MS
+npx wrangler secret put DJEN_BASE_URL
+npx wrangler secret put DJEN_API_PATH
+npx wrangler secret put DJEN_TIMEOUT_MS
+npx wrangler secret put DJEN_INITIAL_LOOKBACK_DAYS
+npx wrangler secret put DJEN_INCREMENTAL_LOOKBACK_DAYS
+npx wrangler secret put USE_MOCK_CONNECTORS
+```
+
+Observacoes importantes:
+
+- O build local e o deploy em Cloudflare exigem Node.js `20.18.1` ou superior.
+- Para Cloudflare, o Prisma foi ajustado para usar `engineType = "client"` e `@prisma/adapter-pg`.
+- O `nodejs_compat` foi habilitado no `wrangler.jsonc`.
+- Se voce usar Supabase Postgres, prefira a connection string direta para o runtime do Worker.
 
 ## Integracao real: Datajud e DJEN
 

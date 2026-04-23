@@ -70,7 +70,7 @@ export async function getProcesses(
       alerts: {
         where: { status: { in: ["UNREAD", "READ"] } },
         orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
-        take: 5,
+        take: 1,
         select: {
           id: true,
           severity: true,

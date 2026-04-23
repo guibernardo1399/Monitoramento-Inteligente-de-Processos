@@ -114,6 +114,7 @@ Arquivos adicionados para isso:
 - `wrangler.jsonc`
 - `open-next.config.ts`
 - `.dev.vars.example`
+- `public/_headers`
 
 Passos:
 
@@ -150,6 +151,13 @@ Se voce estiver usando o painel de Workers Builds do Cloudflare, configure exata
 - Deploy command: `npm run deploy:cloudflare`
 
 O `deploy` do OpenNext precisa encontrar os artefatos gerados em `.open-next`, entao ele nao deve ser executado sozinho sem o passo de build antes.
+
+Antes de disparar um novo build no Cloudflare, confirme que estes arquivos estao commitados no repositório conectado:
+
+- `wrangler.jsonc`
+- `open-next.config.ts`
+- `public/_headers`
+- `package.json`
 
 6. Configure os secrets no Cloudflare:
 

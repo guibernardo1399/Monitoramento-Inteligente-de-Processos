@@ -100,12 +100,20 @@ function normalizePublication(item: DjenApiItem, filters: PublicationSearchFilte
 
 export class DjenConnector implements PublicationConnector {
   key = "DJEN";
-  hasForbiddenConfiguration = isForbiddenDjenSource(env.djenBaseUrl) || isForbiddenDjenSource(env.djenApiPath);
-  hasUsableConfiguration = Boolean(env.djenBaseUrl && env.djenApiPath);
-  supportsLiveData = Boolean(
-    this.hasUsableConfiguration &&
-      !this.hasForbiddenConfiguration,
-  );
+  get hasForbiddenConfiguration() {
+    return isForbiddenDjenSource(env.djenBaseUrl) || isForbiddenDjenSource(env.djenApiPath);
+  }
+
+  get hasUsableConfiguration() {
+    return Boolean(env.djenBaseUrl && env.djenApiPath);
+  }
+
+  get supportsLiveData() {
+    return Boolean(
+      this.hasUsableConfiguration &&
+        !this.hasForbiddenConfiguration,
+    );
+  }
 
   async fetchPublications(filters: PublicationSearchFilters) {
     if (env.useMockConnectors) {

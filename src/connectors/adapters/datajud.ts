@@ -93,9 +93,11 @@ function buildMovementDescription(
 
 export class DatajudConnector implements ProcessDataConnector {
   key = "DATAJUD";
-  supportsLiveData = Boolean(
-    env.datajudBaseUrl && (env.datajudApiKey || env.datajudUsePublicKeyFallback),
-  );
+  get supportsLiveData() {
+    return Boolean(
+      env.datajudBaseUrl && (env.datajudApiKey || env.datajudUsePublicKeyFallback),
+    );
+  }
 
   async fetchProcessByCNJ(cnjNumber: string) {
     if (env.useMockConnectors) {
